@@ -1,5 +1,5 @@
 /***************************************************
-  Comienzo fase diseño display/touchpad.
+  Starting touchpad/display design phase.
  ****************************************************/
 
 
@@ -7,7 +7,6 @@
 #include <SPI.h>
 #include <Wire.h>      // this is needed even tho we aren't using it
 #include <Adafruit_ILI9341.h>
-#include <TouchScreen.h>
 #include <Adafruit_STMPE610.h>
 
 // This is calibration data for the raw touch data to the screen coordinates
