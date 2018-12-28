@@ -162,18 +162,10 @@ void loop() {
       printText(LIM_POSx, LIM_POSy, pax, ILI9341_BLACK, LIM_SIZ);
       printText(LIM_POSx, LIM_POSy, String(p.x), ILI9341_WHITE, LIM_SIZ);
       pax = String(p.x);
-      //      sliderLimiter();
     }
   }
 } // void loop() end.
 
-//unsigned long sliderLimiter() {
-//  int posx = SLID_INIT_POSx+SLID_WIDTHx;
-//  int posy = SLID_INIT_POSy;
-//  int wid = 240 - SLID_INIT_POSx - SLID_WIDTHx;
-//  int h = SLID_HEIGHTy;
-//  tft.fillRect(posx, posy, wid, h, ILI9341_BLACK);
-//}
 
 unsigned long printText(int x, int y, String strg, int col, int sz) {
   unsigned long start = micros();
