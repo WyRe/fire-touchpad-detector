@@ -126,11 +126,11 @@ void loop() {
       Serial.println("TEMP");
       printText(TEMP_MEAS_POSx, TEMP_MEAS_POSy, "Temperature", TEMP_MEAS_COL, TEMP_MEAS_SIZ);
     } else if (p.x < BOXSIZE*6) {
-      currmeasure = 2;
-      printText(TEMP_MEAS_POSx, TEMP_MEAS_POSy, "Temperature", ILI9341_BLACK, TEMP_MEAS_SIZ);
-      tft.drawRect(BOXSIZE*3, 0, BOXSIZE*3, BOXSIZE, ILI9341_WHITE);
-      Serial.println("GAS");
-      printText(GAS_MEAS_POSx, GAS_MEAS_POSy, "GAS", GAS_MEAS_COL, GAS_MEAS_SIZ);
+        currmeasure = 2;
+        printText(TEMP_MEAS_POSx, TEMP_MEAS_POSy, "Temperature", ILI9341_BLACK, TEMP_MEAS_SIZ);
+        tft.drawRect(BOXSIZE*3, 0, BOXSIZE*3, BOXSIZE, ILI9341_WHITE);
+        Serial.println("GAS");
+        printText(GAS_MEAS_POSx, GAS_MEAS_POSy, "GAS", GAS_MEAS_COL, GAS_MEAS_SIZ);
     }
 
     if (oldmeasure != currmeasure) {
