@@ -1,0 +1,16 @@
+00:55:45.259 -> Loading image 'parrot.bmp'
+00:55:45.292 -> File size: 61496
+00:55:45.292 -> Image Offset: 54
+00:55:45.325 -> Header size: 40
+00:55:45.325 -> Bit Depth: 24
+00:55:45.359 -> Image size: 128x160
+00:55:45.359 -> Loaded in 67 ms
+
+
+00:57:38.620 -> Loading image 'hitla.bmp'
+00:57:38.654 -> File size: 296238
+00:57:38.687 -> Image Offset: 138
+00:57:38.687 -> Header size: 124
+00:57:38.721 -> Bit Depth: 32                               El problema es el bit Depth, debe ser 24. Usar las propiedades en la exportación de GIMP.
+00:57:38.721 -> BMP format not recognized.
+
