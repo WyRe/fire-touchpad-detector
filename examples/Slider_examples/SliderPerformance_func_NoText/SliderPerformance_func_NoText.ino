@@ -85,7 +85,7 @@ unsigned long sliderDraw(int slid_posx, int slid_w, int slid_posy, int slid_h, i
     int LIM_POSy = slid_posy - 20;
     int LIM_SIZ = 2;
     
-    Serial.println("Inside function, before if");
+    //Serial.println("Inside function, before if");
     if ((pty > (slid_posy-slid_h*2)) && (pty < (slid_posy + slid_h*2))) { 
     if ((ptx > slid_posx) && (ptx < (slid_posx + slid_w))) {
       tft.fillRect(slid_posx, slid_posy, ptx, slid_h, ILI9341_RED);
@@ -94,6 +94,5 @@ unsigned long sliderDraw(int slid_posx, int slid_w, int slid_posy, int slid_h, i
       tft.drawRect(slid_posx-1, slid_posy-1, slid_w+1, slid_h+2, ILI9341_WHITE);
       }
     }
-    
-    Serial.println("Inside function, after if");
+    //Serial.println("Inside function, after if");
 }

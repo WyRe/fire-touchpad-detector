@@ -73,7 +73,7 @@ void loop() {
 
 unsigned long sliderDraw(int slid_posx, int slid_w, int slid_posy, int slid_h, int ptx, int pty) {
 
-    Serial.println("Inside function, before if");
+    //Serial.println("Inside function, before if");
     if ((pty > (slid_posy-slid_h*2)) && (pty < (slid_posy + slid_h*2))) { 
     if ((ptx > slid_posx) && (ptx < (slid_posx + slid_w))) {
       // Fill left side with RED 
@@ -86,6 +86,5 @@ unsigned long sliderDraw(int slid_posx, int slid_w, int slid_posy, int slid_h, i
       tft.drawRect(slid_posx-1, slid_posy-1, slid_w+1, slid_h+2, ILI9341_WHITE);
       }
     }
-    
-    Serial.println("Inside function, after if");
+    //Serial.println("Inside function, after if");
 }
