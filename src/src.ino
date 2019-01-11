@@ -9,6 +9,7 @@
 #include <Adafruit_ILI9341.h>
 #include <Adafruit_STMPE610.h>
 
+
 // This is calibration data for the raw touch data to the screen coordinates
 #define TS_MINX 150
 #define TS_MINY 130
@@ -57,11 +58,11 @@ Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
 #define SLID_HEIGHTy 15
 
 
-// Right limiter for slider.
-#define lim_posx SLID_INIT_POSx + SLID_WIDTHx
-#define lim_posy SLID_INIT_POSy
-#define lim_wid tft.width() - SLID_INIT_POSx - SLID_WIDTHx
-#define lim_h SLID_HEIGHTy
+// Right fix for slider.
+#define fix_posx SLID_INIT_POSx + SLID_WIDTHx
+#define fix_posy SLID_INIT_POSy
+#define fix_wid tft.width() - SLID_INIT_POSx - SLID_WIDTHx
+#define fix_h SLID_HEIGHTy
 
 
 // Chosen limit by user position
@@ -74,8 +75,8 @@ Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
 int oldmeasure, currmeasure;
 
 
-// Selected value.
-String pax = String(0);
+// Previous selected value.
+int pax;
 
 
 void setup() {
@@ -183,16 +184,16 @@ void loop() {
       tft.fillRect(SLID_INIT_POSx, SLID_INIT_POSy, p.x, SLID_HEIGHTy, ILI9341_GREEN);
       tft.fillRect(p.x, SLID_INIT_POSy, corr_wid, SLID_HEIGHTy, ILI9341_RED);
       // Fixing the right side and white border
-      tft.fillRect(lim_posx, lim_posy, lim_wid, lim_h, ILI9341_BLACK);
+      tft.fillRect(fix_posx, fix_posy, fix_wid, fix_h, ILI9341_BLACK);
       tft.drawRect(SLID_INIT_POSx - 1, SLID_INIT_POSy - 1, SLID_WIDTHx + 1, SLID_HEIGHTy + 2, ILI9341_WHITE);
 
       // This part draws the limit chosen by the user by dragging the slider. If the board read a value higher than this limit 
       // from any sensor It will trigger an alarm. However, by the moment is just to draw the chosen limit in the display.
       // Here we must compute with p.x to translate the value to different scales, anda maybe make a case, to display the 
       // right scale (depending on the measure). By the moment it is just showing the p.x value like a text string
-      printText(LIM_POSx, LIM_POSy, pax, ILI9341_BLACK, LIM_SIZ);
-      printText(LIM_POSx, LIM_POSy, String(p.x), ILI9341_WHITE, LIM_SIZ);
-      pax = String(p.x);
+      printInteg(LIM_POSx, LIM_POSy, pax, ILI9341_BLACK, LIM_SIZ);
+      printInteg(LIM_POSx, LIM_POSy, p.x, ILI9341_WHITE, LIM_SIZ);
+      pax = p.x;
     }
   }
 } // void loop() end.
