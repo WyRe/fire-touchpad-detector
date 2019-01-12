@@ -8,7 +8,12 @@
 #include <Wire.h>      // this is needed even tho we aren't using it
 #include <Adafruit_ILI9341.h>
 #include <Adafruit_STMPE610.h>
+#include <DHT.h> // Temperature and humidity library
 
+// Setting up DHT sensor
+#define DHTPIN 22
+#define DHTTYPE DHT11
+DHT dht(DHTPIN,DHTTYPE);
 
 // This is calibration data for the raw touch data to the screen coordinates
 #define TS_MINX 150
@@ -46,6 +51,8 @@ Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
 #define MEAS_POSx 115
 #define MEAS_POSy 150
 #define MEAS_SIZ 2
+#define MEAS_PATCHw 25
+#define MEAS_PATCHh 15
 #define TEMP_MEAS_COL ILI9341_RED
 #define HUM_MEAS_COL ILI9341_BLUE
 #define GAS_MEAS_COL ILI9341_GREEN
@@ -63,12 +70,18 @@ Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
 #define fix_posy SLID_INIT_POSy
 #define fix_wid tft.width() - SLID_INIT_POSx - SLID_WIDTHx
 #define fix_h SLID_HEIGHTy
-
+int corr_wid;
 
 // Chosen limit by user position
 #define LIM_POSx SLID_INIT_POSx + 75
 #define LIM_POSy SLID_INIT_POSy - 20
 #define LIM_SIZ 2
+
+// Read with raw sample data.
+int temperature = 0;
+int humidity = 0;
+int auxt = 0;
+int auxh = 0;
 
 
 // Possible values -----> temperature:1 ----- humidity:2 ----- gas:3 ------
@@ -90,7 +103,8 @@ void setup() {
     while (1);
   }
   Serial.println("Touchscreen started");
-  
+  dht.begin();
+  Serial.println("DHT started");
   
   // Initial setup for display. (or optionally touchscreen uncommenting)
   // tft.setRotation(2); // Check before how to rotate touchscreen
@@ -103,28 +117,58 @@ void setup() {
 
   // Select the current measure 'Gas'; modify currmeasure value to setup a default measure to show
   // in this case it draws a white rectancle around the button
-  currmeasure = 3;
+  currmeasure = 1;
   if (currmeasure == 1) {
     tft.drawRect(0, 0, BOXSIZE*2, BOXSIZE, ILI9341_WHITE);
-    printInteg(MEAS_POSx, MEAS_POSy, currmeasure, TEMP_MEAS_COL, MEAS_SIZ);
+    //printInteg(MEAS_POSx, MEAS_POSy, currmeasure, TEMP_MEAS_COL, MEAS_SIZ);
   } else if (currmeasure == 2) {
       tft.drawRect(BOXSIZE*2,0,BOXSIZE*2, BOXSIZE, ILI9341_WHITE);
-      printInteg(MEAS_POSx, MEAS_POSy, currmeasure, HUM_MEAS_COL, MEAS_SIZ);
+      //printInteg(MEAS_POSx, MEAS_POSy, currmeasure, HUM_MEAS_COL, MEAS_SIZ);
   } else if (currmeasure == 3) {
       tft.drawRect(BOXSIZE*4, 0, BOXSIZE*2, BOXSIZE, ILI9341_WHITE);
-      printInteg(MEAS_POSx, MEAS_POSy, currmeasure, GAS_MEAS_COL, MEAS_SIZ);
+      //printInteg(MEAS_POSx, MEAS_POSy, currmeasure, GAS_MEAS_COL, MEAS_SIZ);
   }
+
   // Drawing the slider border
   tft.drawRect(SLID_INIT_POSx - 1, SLID_INIT_POSy - 1, SLID_WIDTHx + 1, SLID_HEIGHTy + 2, ILI9341_WHITE);
+
+  // Initial sensor reading
+  temperature = dht.readTemperature();
+  auxt = temperature;
+  humidity = dht.readHumidity();
+  auxh = humidity;
 }
 
 
 void loop() {
+  
+  // See if there's any  touch data for us
+  //if (ts.bufferEmpty()) {
+  //  return;
+  //}
 
+  // Reading sensors info and debugging.
+  //Serial.println("Reading Temp");
+  temperature = dht.readTemperature();
+  //Serial.println(temperature);
+  //Serial.println(auxt);
+  //Serial.println("Reading Humidity");
+  humidity = dht.readHumidity();
+  //Serial.println(humidity);
+  //Serial.println(auxh);
+  
   // Wait for a touch
-  if (! ts.touched()) {
+  if (ts.touched() == false && temperature == auxt && humidity == auxh) {
     return;
   }
+  Serial.println("Measure changes");
+  
+  //ts.touched();
+  //if (dht11.read(pinDHT11, &temperature, &humidity, data)) {
+  //   Serial.print("Read DHT11 failed");
+  //   return;
+  //}
+  
   // Retrieve a point
   TS_Point p = ts.getPoint();
   // Scale from ~0->4000 to tft.width using the calibration #'s
@@ -134,7 +178,6 @@ void loop() {
   Serial.print("("); Serial.print(p.x);
   Serial.print(", "); Serial.print(p.y);
   Serial.println(")");
-
   
   // Choosing a measure. Once we receive the ts data, this condicional check if the user pressed inside button region, 
   // then, draws a white rectangle and displays the measure coming from any kind of sensor
@@ -142,22 +185,22 @@ void loop() {
     oldmeasure = currmeasure;
     if (p.x < BOXSIZE*2) {
       currmeasure = 1;
-      printInteg(MEAS_POSx, MEAS_POSy, oldmeasure, ILI9341_BLACK, MEAS_SIZ);
+      //printInteg(MEAS_POSx, MEAS_POSy, oldmeasure, ILI9341_BLACK, MEAS_SIZ);
       tft.drawRect(0, 0, BOXSIZE*2, BOXSIZE, ILI9341_WHITE);
       Serial.println("TEMP");
-      printInteg(MEAS_POSx, MEAS_POSy, currmeasure, TEMP_MEAS_COL, MEAS_SIZ);
+      //printInteg(MEAS_POSx, MEAS_POSy, currmeasure, TEMP_MEAS_COL, MEAS_SIZ);
     } else if(p.x > BOXSIZE*2 && p.x < BOXSIZE*4) {
         currmeasure = 2;
-        printInteg(MEAS_POSx, MEAS_POSy, oldmeasure, ILI9341_BLACK, MEAS_SIZ);
+        //printInteg(MEAS_POSx, MEAS_POSy, oldmeasure, ILI9341_BLACK, MEAS_SIZ);
         tft.drawRect(BOXSIZE*2, 0, BOXSIZE*2, BOXSIZE, ILI9341_WHITE);
         Serial.println("HUM");
-        printInteg(MEAS_POSx, MEAS_POSy, currmeasure, HUM_MEAS_COL, MEAS_SIZ);
+        //printInteg(MEAS_POSx, MEAS_POSy, currmeasure, HUM_MEAS_COL, MEAS_SIZ);
     } else if (p.x > BOXSIZE*4) {
         currmeasure = 3;
-        printInteg(MEAS_POSx, MEAS_POSy, oldmeasure, ILI9341_BLACK, MEAS_SIZ);
+        //printInteg(MEAS_POSx, MEAS_POSy, oldmeasure, ILI9341_BLACK, MEAS_SIZ);
         tft.drawRect(BOXSIZE*4, 0, BOXSIZE*2, BOXSIZE, ILI9341_WHITE);
         Serial.println("GAS");
-        printInteg(MEAS_POSx, MEAS_POSy, currmeasure, GAS_MEAS_COL, MEAS_SIZ);
+        //printInteg(MEAS_POSx, MEAS_POSy, currmeasure, GAS_MEAS_COL, MEAS_SIZ);
     }
    // This following block fixes the previous button border by drawing a black rectangle 
     if (oldmeasure != currmeasure) {
@@ -169,33 +212,81 @@ void loop() {
         tft.drawRect(BOXSIZE*4, 0, BOXSIZE*2, BOXSIZE, ILI9341_BLACK);  
     }
   }
+  
 
+  
+  switch (currmeasure) {
+    case 1:
+        tft.fillRect(MEAS_POSx, MEAS_POSy, MEAS_PATCHw, MEAS_PATCHh, ILI9341_BLACK);
+        printInteg(MEAS_POSx, MEAS_POSy, temperature, ILI9341_WHITE, MEAS_SIZ);
+        auxt = temperature;
+        auxh = humidity;
+            
+        // Here is the most complicated part, The Slider. Again a conditional function check if the user pressed in the 
+        // Slider region. 
+        if ((p.y > (SLID_INIT_POSy - SLID_HEIGHTy * 2)) && (p.y < (SLID_INIT_POSy + SLID_HEIGHTy * 2)) && p.y > 0) {
+            if ((p.x > SLID_INIT_POSx) && (p.x < (SLID_INIT_POSx + SLID_WIDTHx))) {
+                // I don't know why I must fix the slider at right side. Theoretically this conditional check if user pressed between two specific
+                // p.x values. So ... if the user is pressing outside, should not be drawn anything, but for some reason I need to fix, cause slider 
+                // keeps drawing itself if the user drag the finger to the right. The following variable is intended to do this
+                corr_wid = SLID_INIT_POSx + SLID_WIDTHx - p.x - 1;
 
-  // Here is the most complicated part, The Slider. Again a conditional function check if the user pressed in the 
-  // Slider region. 
-  if ((p.y > (SLID_INIT_POSy - SLID_HEIGHTy * 2)) && (p.y < (SLID_INIT_POSy + SLID_HEIGHTy * 2))) {
-    if ((p.x > SLID_INIT_POSx) && (p.x < (SLID_INIT_POSx + SLID_WIDTHx))) {
-      // I don't know why I must fix the slider at right side. Theoretically this conditional check if user pressed between two specific
-      // p.x values. So ... if the user is pressing outside, should not be drawn anything, but for some reason I need to fix, cause slider 
-      // keeps drawing itself if the user drag the finger to the right. The following variable is intended to do this
-      int corr_wid = SLID_INIT_POSx + SLID_WIDTHx - p.x - 1;
+                // Filling right and left parts of slider 
+                tft.fillRect(SLID_INIT_POSx, SLID_INIT_POSy, p.x, SLID_HEIGHTy, ILI9341_GREEN);
+                tft.fillRect(p.x, SLID_INIT_POSy, corr_wid, SLID_HEIGHTy, ILI9341_BLACK);
+                // Fixing the right side and white border
+                tft.fillRect(fix_posx, fix_posy, fix_wid, fix_h, ILI9341_BLACK);
+                tft.drawRect(SLID_INIT_POSx - 1, SLID_INIT_POSy - 1, SLID_WIDTHx + 1, SLID_HEIGHTy + 2, ILI9341_WHITE);
 
-      // Filling right and left parts of slider 
-      tft.fillRect(SLID_INIT_POSx, SLID_INIT_POSy, p.x, SLID_HEIGHTy, ILI9341_GREEN);
-      tft.fillRect(p.x, SLID_INIT_POSy, corr_wid, SLID_HEIGHTy, ILI9341_RED);
-      // Fixing the right side and white border
-      tft.fillRect(fix_posx, fix_posy, fix_wid, fix_h, ILI9341_BLACK);
-      tft.drawRect(SLID_INIT_POSx - 1, SLID_INIT_POSy - 1, SLID_WIDTHx + 1, SLID_HEIGHTy + 2, ILI9341_WHITE);
+                // This part draws the limit chosen by the user by dragging the slider. If the board read a value higher than this limit 
+                // from any sensor It will trigger an alarm. However, by the moment is just to draw the chosen limit in the display.
+                // Here we must compute with p.x to translate the value to different scales, anda maybe make a case, to display the 
+                // right scale (depending on the measure). By the moment it is just showing the p.x value like a text string
+                
+                printInteg(LIM_POSx, LIM_POSy, pax, ILI9341_BLACK, LIM_SIZ);
+                printInteg(LIM_POSx, LIM_POSy, p.x, ILI9341_WHITE, LIM_SIZ);
+                pax = p.x;
+            }
+        }
+    break;
+    case 2:
+        tft.fillRect(MEAS_POSx, MEAS_POSy, MEAS_PATCHw, MEAS_PATCHh, ILI9341_BLACK);
+        printInteg(MEAS_POSx, MEAS_POSy, humidity, ILI9341_WHITE, MEAS_SIZ);
+        auxh = humidity;
+        auxt = temperature;
+    
+        // Here is the most complicated part, The Slider. Again a conditional function check if the user pressed in the 
+        // Slider region. 
+        if ((p.y > (SLID_INIT_POSy - SLID_HEIGHTy * 2)) && (p.y < (SLID_INIT_POSy + SLID_HEIGHTy * 2)) && p.y > 0) {
+            if ((p.x > SLID_INIT_POSx) && (p.x < (SLID_INIT_POSx + SLID_WIDTHx))) {
+                // I don't know why I must fix the slider at right side. Theoretically this conditional check if user pressed between two specific
+                // p.x values. So ... if the user is pressing outside, should not be drawn anything, but for some reason I need to fix, cause slider 
+                // keeps drawing itself if the user drag the finger to the right. The following variable is intended to do this
+                corr_wid = SLID_INIT_POSx + SLID_WIDTHx - p.x - 1;
 
-      // This part draws the limit chosen by the user by dragging the slider. If the board read a value higher than this limit 
-      // from any sensor It will trigger an alarm. However, by the moment is just to draw the chosen limit in the display.
-      // Here we must compute with p.x to translate the value to different scales, anda maybe make a case, to display the 
-      // right scale (depending on the measure). By the moment it is just showing the p.x value like a text string
-      printInteg(LIM_POSx, LIM_POSy, pax, ILI9341_BLACK, LIM_SIZ);
-      printInteg(LIM_POSx, LIM_POSy, p.x, ILI9341_WHITE, LIM_SIZ);
-      pax = p.x;
-    }
+                // Filling right and left parts of slider 
+                tft.fillRect(SLID_INIT_POSx, SLID_INIT_POSy, p.x, SLID_HEIGHTy, ILI9341_GREEN);
+                tft.fillRect(p.x, SLID_INIT_POSy, corr_wid, SLID_HEIGHTy, ILI9341_BLACK);
+                // Fixing the right side and white border
+                tft.fillRect(fix_posx, fix_posy, fix_wid, fix_h, ILI9341_BLACK);
+                tft.drawRect(SLID_INIT_POSx - 1, SLID_INIT_POSy - 1, SLID_WIDTHx + 1, SLID_HEIGHTy + 2, ILI9341_WHITE);
+
+                // This part draws the limit chosen by the user by dragging the slider. If the board read a value higher than this limit 
+                // from any sensor It will trigger an alarm. However, by the moment is just to draw the chosen limit in the display.
+                // Here we must compute with p.x to translate the value to different scales, anda maybe make a case, to display the 
+                // right scale (depending on the measure). By the moment it is just showing the p.x value like a text string
+                printInteg(LIM_POSx, LIM_POSy, pax, ILI9341_BLACK, LIM_SIZ);
+                printInteg(LIM_POSx, LIM_POSy, p.x, ILI9341_WHITE, LIM_SIZ);
+                pax = p.x;
+            }
+        }
+    break;
+    //case 3:
+    //break;  
   }
+
+
+delayMicroseconds(100);
 } // void loop() end.
 
 // In this declarative version this is the unique one function that We've used. It display a given string of characteres. 
