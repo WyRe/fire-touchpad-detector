@@ -10,3 +10,6 @@ This repository contains the main code and docu about the design device based on
 * MQ2 Gas sensor (Keystudio)
 * TFT touchscren 2.8" (Adafruit)
 
+## License
+
+This project is licensed under GPLv3. - see the [LICENSE.md](LICENSE.md) file for details.
