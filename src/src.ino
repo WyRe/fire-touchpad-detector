@@ -15,6 +15,9 @@
 
 // Constants related with physical wiring and pins. 
 
+// Setting up MQ2 gas sensor
+#define PIN_MQ2 33
+
 // Setting up DHT sensor
 #define DHTPIN 22
 #define DHTTYPE DHT11
@@ -117,12 +120,22 @@ int temp_lim,temp_lim_aux,hum_lim,hum_lim_aux;
 
 // Variables:
 
+// Gas sensor relative variables
+float mq2_volt;
+int mq2_value;
+bool mq2_state;
+float RS_gas; // Get value of RS in a GAS
+float ratio; // Get ratio RS_GAS/RS_air
+float lpg; // concentration of LPGs
+float dihyd; // concentration of H2
+float co; // concentration of CO
+
+
 // Read with raw sample data.
 int temperature = 0;
 int humidity = 0;
 int auxt = 0;
 int auxh = 0;
-bool f;
 
 
 // Possible values -----> temperature:1 ----- humidity:2 ----- gas:3 ------
@@ -148,7 +161,12 @@ void setup() {
   dht.begin();
   Serial.println("DHT started");
 
-  // Initial sensor reading
+  // Initial MQ2 sensor reading
+  pinMode(PIN_MQ2, INPUT); // Set sensor - pin 33 as an input
+  mq2_value = analogRead(A8);
+  mq2_state = digitalRead(PIN_MQ2);
+
+  // Initial DHT sensor reading
   Serial.println("");
   Serial.print("Initial reading      =>     ");
   Serial.print("Temp -> ");
@@ -192,9 +210,8 @@ void setup() {
   // Drawing the slider border
   tft.drawRect(SLID_INIT_POSx - 1, SLID_INIT_POSy - 1, SLID_WIDTHx + 1, SLID_HEIGHTy + 2, ILI9341_WHITE);
 
-  // Flame indicator
-
-  printText(FLA_TXT_POSx, FLA_TXT_POSy,"Flame", FLA_TXT_COL, FLA_TXT_SIZ);
+  // Gas indicator
+  printText(FLA_TXT_POSx, FLA_TXT_POSy, "Smoke", FLA_TXT_COL, FLA_TXT_SIZ);
   tft.drawRect(FLA_IND_POSx, FLA_TXT_POSy, FLA_IND_SIDE, FLA_IND_SIDE, FLA_IND_BORD_COL);
 }
 
@@ -208,21 +225,36 @@ void loop() {
   //Serial.print("Sensors reading loop      =>     ");
   //Serial.print("Temp -> ");
   temperature = dht.readTemperature();
-  //Serial.print(temperature);
-  //Serial.println(auxt);
-  //Serial.print("    /   Hum -> ");
+  //Serial.print(temperature);Serial.print("/");
+  //Serial.print(auxt);
+  //Serial.print(" /  Hum -> ");
   humidity = dht.readHumidity();
-  //Serial.println(humidity);
+  //Serial.print(humidity);Serial.print("/");
   //Serial.println(auxh);
   lastreadingtime=millis();
+  mq2_value = analogRead(A8);
+  mq2_state = digitalRead(PIN_MQ2);
+  mq2_volt = (float)mq2_value/1024*5.0;
+  RS_gas = (5.0-mq2_volt)/mq2_volt;     // omit * RL (1000)
+  ratio = RS_gas/2.70;    // ratio = RS/R0, with R0=2.70
+  lpg = int(482.67 * pow(ratio, -2.542)); 
+  dihyd = int(871.81 * pow(ratio, -2.175));
+  co = int(17250 * pow(ratio, -2.668));
   }
 
+  // See if there's any  touch data for us
+  if (ts.bufferEmpty() == true && temperature == auxt && humidity == auxh && ) {
+    return;
+  }
 
   // Wait for a touch
-  if (ts.touched() == false && temperature == auxt && humidity == auxh) {
-     return;
-  }
-  //ts.touched();
+  //if (ts.touched() == false && temperature == auxt && humidity == auxh) {
+  //   return;
+  //}
+  
+  //while(ts.touched()) {
+  //  TS_Point p = ts.getPoint();    
+  //}
 
   // Retrieve a point
   TS_Point p = ts.getPoint();
@@ -238,10 +270,12 @@ void loop() {
 
   // If any variable changed the first thing to do (after retrieve the point if user pressed) is check if this new value
   // is greater or lower than limit chosen by user.
+  //Serial.println("Checking variables and limits:");
+  //Serial.println("Temperature");
   checkTemp(temperature, temp_lim);
+  //Serial.println("Humidity");
   checkHum(humidity, hum_lim);
-  f = true;
-  checkFlame(f);
+  checkGas(mq2_state);
   
   // Choosing a measure. Once we receive the ts data, this condicional checks if the user pressed inside any button region,
   // then, draws a white rectangle and displays the measure coming from any kind of sensor
@@ -356,13 +390,13 @@ unsigned long checkTemp(int t, int t_lim) {
   if (t < t_lim) {
       // Things to do when temperature is lower than chosen limit
 
-      tft.fillTriangle(MEAS_POSx - 20, MEAS_POSy - 20, MEAS_POSx - 20 + 5, MEAS_POSy - 20 - 10, MEAS_POSx - 10, MEAS_POSy - 20, ILI9341_BLACK);
-      tft.fillTriangle(MEAS_POSx - 20, MEAS_POSy - 20, MEAS_POSx - 20 + 5, MEAS_POSy - 20 + 10, MEAS_POSx - 10, MEAS_POSy - 20, ILI9341_RED);
+      tft.fillTriangle(MEAS_POSx - 20, MEAS_POSy - 20, MEAS_POSx - 20, MEAS_POSy - 30, MEAS_POSx - 30, MEAS_POSy - 25, ILI9341_BLACK);
+      tft.fillTriangle(MEAS_POSx - 20, MEAS_POSy - 20, MEAS_POSx - 20, MEAS_POSy - 30, MEAS_POSx - 10, MEAS_POSy - 25, ILI9341_RED);
   } else if (t > t_lim) {
       // Things to do when temperature is greater than chosen limit
 
-      tft.fillTriangle(MEAS_POSx - 20, MEAS_POSy - 20, MEAS_POSx - 20 + 5, MEAS_POSy - 20 + 10, MEAS_POSx - 10, MEAS_POSy - 20, ILI9341_BLACK);
-      tft.fillTriangle(MEAS_POSx - 20, MEAS_POSy - 20, MEAS_POSx - 20 + 5, MEAS_POSy - 20 - 10, MEAS_POSx - 10, MEAS_POSy - 20, ILI9341_RED);
+      tft.fillTriangle(MEAS_POSx - 20, MEAS_POSy - 20, MEAS_POSx - 20, MEAS_POSy - 30, MEAS_POSx - 10, MEAS_POSy - 25, ILI9341_BLACK);
+      tft.fillTriangle(MEAS_POSx - 20, MEAS_POSy - 20, MEAS_POSx - 20, MEAS_POSy - 30, MEAS_POSx - 30, MEAS_POSy - 25, ILI9341_RED);
   }
   return;
 }
@@ -371,19 +405,19 @@ unsigned long checkHum(int h, int h_lim) {
   if (h < h_lim) {
       // Things to do when humidity is lower than chosen limit
 
-      tft.fillTriangle(MEAS_POSx + 20, MEAS_POSy - 20, MEAS_POSx + 20 + 5, MEAS_POSy - 20 - 10, MEAS_POSx + 30, MEAS_POSy - 20, ILI9341_BLACK);
-      tft.fillTriangle(MEAS_POSx + 20, MEAS_POSy - 20, MEAS_POSx + 20 + 5, MEAS_POSy - 20 + 10, MEAS_POSx + 30, MEAS_POSy - 20, ILI9341_BLUE);
+      tft.fillTriangle(MEAS_POSx + 20, MEAS_POSy - 20, MEAS_POSx + 20, MEAS_POSy - 30, MEAS_POSx + 10, MEAS_POSy - 25, ILI9341_BLACK);
+      tft.fillTriangle(MEAS_POSx + 20, MEAS_POSy - 20, MEAS_POSx + 20, MEAS_POSy - 30, MEAS_POSx + 30, MEAS_POSy - 25, ILI9341_BLUE);
   } else if (h > h_lim) {
       // Things to do when humidity is greater than chosen limit
 
-      tft.fillTriangle(MEAS_POSx + 20, MEAS_POSy - 20, MEAS_POSx + 20 + 5, MEAS_POSy - 20 + 10, MEAS_POSx + 30, MEAS_POSy - 20, ILI9341_BLACK);
-      tft.fillTriangle(MEAS_POSx + 20, MEAS_POSy - 20, MEAS_POSx + 20 + 5, MEAS_POSy - 20 - 10, MEAS_POSx + 30, MEAS_POSy - 20, ILI9341_BLUE);
+      tft.fillTriangle(MEAS_POSx + 20, MEAS_POSy - 20, MEAS_POSx + 20, MEAS_POSy - 30, MEAS_POSx + 30, MEAS_POSy - 25, ILI9341_BLACK);
+      tft.fillTriangle(MEAS_POSx + 20, MEAS_POSy - 20, MEAS_POSx + 20, MEAS_POSy - 30, MEAS_POSx + 10, MEAS_POSy - 25, ILI9341_BLUE);
   }
   return;
 }
 
-unsigned long checkFlame(int f) {
-  if (f == true){
+unsigned long checkGas(int g) {
+  if (g == false){
     tft.fillRect(FLA_IND_POSx+1, FLA_TXT_POSy+1, FLA_IND_SIDE-2, FLA_IND_SIDE-2, FLA_IND_COL);
   } else {
     tft.fillRect(FLA_IND_POSx+1, FLA_TXT_POSy+1, FLA_IND_SIDE-2, FLA_IND_SIDE-2, ILI9341_BLACK);
