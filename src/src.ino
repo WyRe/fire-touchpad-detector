@@ -39,14 +39,41 @@ Adafruit_STMPE610 ts = Adafruit_STMPE610(STMPE_CS);
 #define TFT_DC 9
 Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
 
-
-
+// Color definitions for 64k color mode
+// Bits 0..4 -> Blue 0..4
+// Bits 5..10 -> Green 0..5
+// Bits 11..15 -> Red 0..4
+#define GLCD_CL_BLACK 0x0000
+#define GLCD_CL_WHITE 0xFFFF
+#define GLCD_CL_GRAY 0x7BEF
+#define GLCD_CL_LIGHT_GRAY 0xC618
+#define GLCD_CL_GREEN 0x07E0
+#define GLCD_CL_LIME 0x87E0
+#define GLCD_CL_BLUE 0x001F
+#define GLCD_CL_RED 0xF800
+#define GLCD_CL_AQUA 0x5D1C
+#define GLCD_CL_YELLOW 0xFFE0
+#define GLCD_CL_MAGENTA 0xF81F
+#define GLCD_CL_CYAN 0x07FF
+#define GLCD_CL_DARK_CYAN 0x03EF
+#define GLCD_CL_ORANGE 0xFCA0
+#define GLCD_CL_PINK 0xF97F
+#define GLCD_CL_BROWN 0x8200
+#define GLCD_CL_VIOLET 0x9199
+#define GLCD_CL_SILVER 0xA510
+#define GLCD_CL_GOLD 0xA508
+#define GLCD_CL_NAVY 0x000F
+#define GLCD_CL_MAROON 0x7800
+#define GLCD_CL_PURPLE 0x780F
+#define GLCD_CL_OLIVE 0x7BE0
 
 
 // Constants relative to graphics parts: 
 
 // Size of the color selection boxes and the paintbrush size
 #define BOXSIZE 40            // both buttons have the same height and width, using this parameter
+
+#define BACK_COL ILI9341_BLACK
 
 // Button's Texts Positions
 #define TEMP_BUTT_POSx 25
@@ -63,14 +90,28 @@ Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
 #define HUM_BUTT_SIZ 0.5
 
 // Measurement position, size and colours
-#define MEAS_POSx 115
+#define MEAS_POSx 105
 #define MEAS_POSy 150
 #define MEAS_SIZ 2
-#define MEAS_PATCHw 25
-#define MEAS_PATCHh 15
+#define GAS_MEAS_POSx MEAS_POSx + 20
+#define GAS_MEAS_TEXTx MEAS_POSx - 50
+
+#define MEAS_PATCHx 50
+#define MEAS_PATCHy 110
+#define MEAS_PATCHw 160
+#define MEAS_PATCHh 100
+#define MEAS_PATCH_COL ILI9341_YELLOW
+
 #define TEMP_MEAS_COL ILI9341_RED
 #define HUM_MEAS_COL ILI9341_BLUE
-#define GAS_MEAS_COL ILI9341_GREEN
+#define LPG_MEAS_COL ILI9341_GREEN
+#define H2_MEAS_COL GLCD_CL_PURPLE
+#define CO_MEAS_COL GLCD_CL_ORANGE
+
+#define TEMP_ARR_POSx 20
+#define TEMP_ARR_POSy 90
+#define HUM_ARR_POSx 20
+#define HUM_ARR_POSy 110
 
 
 // Slider position and colour parameters
@@ -87,6 +128,8 @@ Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
 #define TEMP_SLID_SCALb -8.71
 #define HUM_SLID_SCALa 0.337
 #define HUM_SLID_SCALb 9.57
+#define GAS_SLID_SCALa 11.7
+#define GAS_SLID_SCALb -11240
 
 
 // Right fix for slider.
@@ -108,15 +151,15 @@ int temp_lim,temp_lim_aux,hum_lim,hum_lim_aux;
 #define MARK_WIDTH 5
 
 
-// Flame indicator
-#define FLA_TXT_POSx 10
-#define FLA_TXT_POSy 60
-#define FLA_TXT_COL ILI9341_WHITE
-#define FLA_TXT_SIZ 1
-#define FLA_IND_POSx 50
-#define FLA_IND_SIDE 10
-#define FLA_IND_BORD_COL ILI9341_WHITE
-#define FLA_IND_COL ILI9341_YELLOW
+// Smoke indicator
+#define SMOK_TXT_POSx 10
+#define SMOK_TXT_POSy 60
+#define SMOK_TXT_COL ILI9341_WHITE
+#define SMOK_TXT_SIZ 1
+#define SMOK_IND_POSx 50
+#define SMOK_IND_SIDE 10
+#define SMOK_IND_BORD_COL ILI9341_WHITE
+#define SMOK_IND_COL ILI9341_YELLOW
 
 
 // Variables:
@@ -124,12 +167,17 @@ int temp_lim,temp_lim_aux,hum_lim,hum_lim_aux;
 // Gas sensor relative variables
 float mq2_volt;
 int mq2_value;
+int auxmq2;
 bool mq2_state;
+bool auxmq2st;
 float RS_gas; // Get value of RS in a GAS
 float ratio; // Get ratio RS_GAS/RS_air
 float lpg; // concentration of LPGs
 float dihyd; // concentration of H2
 float co; // concentration of CO
+float auxlpg;
+float auxdihyd;
+float auxco;
 
 
 // Read with raw sample data.
@@ -149,7 +197,6 @@ int pax;
 
 // Retains measure reading loop with no delay for loop() cycles
 long lastreadingtime=0;
-
 
 void setup() {
 
@@ -177,15 +224,26 @@ void setup() {
   humidity = dht.readHumidity();
   Serial.println(humidity);
   Serial.println("");
+  mq2_value = analogRead(A8);
+  mq2_state = digitalRead(PIN_MQ2);
+  mq2_volt = (float)mq2_value/1024*5.0;
+  RS_gas = (5.0-mq2_volt)/mq2_volt;     // omit * RL (1000)
+  ratio = RS_gas/2.70;    // ratio = RS/R0, with R0=2.70
+  lpg = int(482.67 * pow(ratio, -2.542));
+  dihyd = int(871.81 * pow(ratio, -2.175));
+  co = abs(int(17250 * pow(ratio, -2.668)));          // I've introduced abs() function because co concentration was giving negative value (Sensor calibration?)
 
-  //Initial setup for display. (or optionally touchscreen uncommenting)
-  // tft.setRotation(2); // Check before how to rotate touchscreen
-  tft.fillScreen(ILI9341_BLACK);
+  // Initial setup for display. (or optionally touchscreen uncommenting)
+  //tft.setRotation(2); // Check before how to rotate touchscreen
+  tft.fillScreen(BACK_COL);
 
   // Displaying text of buttons measure selection boxes                             // Modify defined constants
   printText(TEMP_BUTT_POSx, TEMP_BUTT_POSy, "T [C]", TEMP_BUTT_COL, TEMP_BUTT_SIZ);
   printText(GAS_BUTT_POSx, GAS_BUTT_POSy, "Hum [%]", GAS_BUTT_COL, GAS_BUTT_SIZ);
   printText(HUM_BUTT_POSx, HUM_BUTT_POSy, "Gas [ppm]", HUM_BUTT_COL, HUM_BUTT_SIZ);
+
+  // Drawing the slider border
+  tft.drawRect(SLID_INIT_POSx - 1, SLID_INIT_POSy - 1, SLID_WIDTHx + 1, SLID_HEIGHTy + 2, ILI9341_WHITE);
 
   /***
   Select the current measure 'Temp'; modify currmeasure value to setup a default measure to show
@@ -211,15 +269,12 @@ void setup() {
   } else if (currmeasure == 3) {
       tft.drawRect(BOXSIZE*4, 0, BOXSIZE*2, BOXSIZE, ILI9341_WHITE);
       Serial.println("Default measure: GAS");
-      //printInteg(MEAS_POSx, MEAS_POSy, currmeasure, GAS_MEAS_COL, MEAS_SIZ);
+      // There is no need for initial gas measures config, because this measures have not dynamic limiter.  
   }
 
-  // Drawing the slider border
-  tft.drawRect(SLID_INIT_POSx - 1, SLID_INIT_POSy - 1, SLID_WIDTHx + 1, SLID_HEIGHTy + 2, ILI9341_WHITE);
-
-  // Gas indicator
-  printText(FLA_TXT_POSx, FLA_TXT_POSy, "Smoke", FLA_TXT_COL, FLA_TXT_SIZ);
-  tft.drawRect(FLA_IND_POSx, FLA_TXT_POSy, FLA_IND_SIDE, FLA_IND_SIDE, FLA_IND_BORD_COL);
+  // Smoke indicator
+  printText(SMOK_TXT_POSx, SMOK_TXT_POSy + 2, "Smoke", SMOK_TXT_COL, SMOK_TXT_SIZ);
+  tft.drawRect(SMOK_IND_POSx, SMOK_TXT_POSy, SMOK_IND_SIDE, SMOK_IND_SIDE, SMOK_IND_BORD_COL);
 }
 
 
@@ -238,7 +293,7 @@ void loop() {
   humidity = dht.readHumidity();
   //Serial.print(humidity);Serial.print("/");
   //Serial.println(auxh);
-  lastreadingtime=millis();
+
   mq2_value = analogRead(A8);
   mq2_state = digitalRead(PIN_MQ2);
   mq2_volt = (float)mq2_value/1024*5.0;
@@ -246,12 +301,13 @@ void loop() {
   ratio = RS_gas/2.70;    // ratio = RS/R0, with R0=2.70
   lpg = int(482.67 * pow(ratio, -2.542)); 
   dihyd = int(871.81 * pow(ratio, -2.175));
-  co = int(17250 * pow(ratio, -2.668));
+  co = abs(int(17250 * pow(ratio, -2.668)));
+  lastreadingtime=millis();
   }
 
   // See if there's any  touch data for us
-  if (ts.bufferEmpty() == true && temperature == auxt && humidity == auxh) {
-    return;
+  if (ts.bufferEmpty() == true && temperature == auxt && humidity == auxh && mq2_value == auxmq2 && mq2_state == auxmq2st) {
+      return;
   }
 
   /***
@@ -291,11 +347,13 @@ void loop() {
   If any variable changed the first thing to do (after retrieve the point if user pressed) is check if this new value
   is greater or lower than limit chosen by user.
   ***/
+
   //Serial.println("Checking variables and limits:");
   //Serial.println("Temperature");
-  checkTemp(temperature, temp_lim);
+  checkVarArrow(temperature, temp_lim, TEMP_ARR_POSx, TEMP_ARR_POSy, TEMP_MEAS_COL);
   //Serial.println("Humidity");
-  checkHum(humidity, hum_lim);
+  checkVarArrow(humidity, hum_lim, HUM_ARR_POSx, HUM_ARR_POSy, HUM_MEAS_COL);
+
   checkSmoke(mq2_state);
 
   /***
@@ -308,7 +366,7 @@ void loop() {
     if (p.x < BOXSIZE*2) {
       currmeasure = 1;
       EEPROM.write(0, currmeasure);
-      tft.fillRect(MEAS_POSx, MEAS_POSy, MEAS_PATCHw, MEAS_PATCHh, ILI9341_BLACK);
+      printInteg(MEAS_POSx, MEAS_POSy, auxt, BACK_COL, MEAS_SIZ);
       tft.drawRect(0, 0, BOXSIZE*2, BOXSIZE, ILI9341_WHITE);
       //Serial.println("TEMP");
       printInteg(MEAS_POSx, MEAS_POSy, temperature, TEMP_MEAS_COL, MEAS_SIZ);
@@ -320,32 +378,61 @@ void loop() {
     } else if(p.x > BOXSIZE*2 && p.x < BOXSIZE*4) {
         currmeasure = 2;
         EEPROM.write(0,currmeasure);
-        tft.fillRect(MEAS_POSx, MEAS_POSy, MEAS_PATCHw, MEAS_PATCHh, ILI9341_BLACK);
+        printInteg(MEAS_POSx, MEAS_POSy, auxh, BACK_COL, MEAS_SIZ);
         tft.drawRect(BOXSIZE*2, 0, BOXSIZE*2, BOXSIZE, ILI9341_WHITE);
         //Serial.println("HUM");
         printInteg(MEAS_POSx, MEAS_POSy, humidity, HUM_MEAS_COL, MEAS_SIZ);
         hum_lim_aux = EEPROM.read(4);
         fillslidRender(hum_lim_aux);
         tft.fillRect((int)((humidity-HUM_SLID_SCALb)/HUM_SLID_SCALa), SLID_INIT_POSy, MARK_WIDTH, SLID_HEIGHTy, HUM_MEAS_COL);
-        tft.fillRect(LIM_POSx, LIM_POSy, FIX_LIM, MEAS_PATCHh, ILI9341_BLACK);
         hum_lim = EEPROM.read(3);
         printInteg(LIM_POSx, LIM_POSy, hum_lim, ILI9341_WHITE, LIM_SIZ);
     } else if (p.x > BOXSIZE*4) {
         currmeasure = 3;
         EEPROM.write(0,currmeasure);
-        //printInteg(MEAS_POSx, MEAS_POSy, oldmeasure, ILI9341_BLACK, MEAS_SIZ);
         tft.drawRect(BOXSIZE*4, 0, BOXSIZE*2, BOXSIZE, ILI9341_WHITE);
         //Serial.println("GAS");
-        //printInteg(MEAS_POSx, MEAS_POSy, currmeasure, GAS_MEAS_COL, MEAS_SIZ);
-    }
-   // This following block fixes the previous button border drawing a black rectangle
-    if (oldmeasure != currmeasure) {
+
+        printInteg(GAS_MEAS_POSx, MEAS_POSy - 10, auxlpg, BACK_COL, MEAS_SIZ);
+        printInteg(GAS_MEAS_POSx, MEAS_POSy + 10, auxdihyd, BACK_COL, MEAS_SIZ);
+        printInteg(GAS_MEAS_POSx, MEAS_POSy + 30, auxco, BACK_COL, MEAS_SIZ);
+
+        printText(GAS_MEAS_TEXTx, MEAS_POSy - 10, "LPGs:", LPG_MEAS_COL, MEAS_SIZ);
+        printText(GAS_MEAS_TEXTx, MEAS_POSy + 10, "H2:", H2_MEAS_COL, MEAS_SIZ);
+        printText(GAS_MEAS_TEXTx, MEAS_POSy + 30, "CO:", CO_MEAS_COL, MEAS_SIZ);
+
+        printInteg(GAS_MEAS_POSx, MEAS_POSy - 10, lpg, LPG_MEAS_COL, MEAS_SIZ);
+        printInteg(GAS_MEAS_POSx, MEAS_POSy + 10, dihyd, H2_MEAS_COL, MEAS_SIZ);
+        printInteg(GAS_MEAS_POSx, MEAS_POSy + 30, co, CO_MEAS_COL, MEAS_SIZ);
+
+        printText(SLID_INIT_POSx - 2, SLID_INIT_POSy + 20, "0", ILI9341_WHITE, 1);
+        printText(SLID_INIT_POSx + SLID_WIDTHx - 4, SLID_INIT_POSy + 20, "50k", ILI9341_WHITE, 1);
+
+        printgasMarks(auxlpg, auxdihyd, auxco, lpg, dihyd, co);
+   }
+   // This following block fixes the previous button border and shown info drawing elements with background color
+   if (oldmeasure != currmeasure) {
       if (oldmeasure == 1)
-        tft.drawRect(0, 0, BOXSIZE*2, BOXSIZE, ILI9341_BLACK);
+        tft.drawRect(0, 0, BOXSIZE*2, BOXSIZE, BACK_COL);
+        printInteg(MEAS_POSx, MEAS_POSy, temperature, BACK_COL, MEAS_SIZ);
+        printInteg(MEAS_POSx, MEAS_POSy, auxt, BACK_COL, MEAS_SIZ);
       if (oldmeasure == 2)
-        tft.drawRect(BOXSIZE*2, 0, BOXSIZE*2, BOXSIZE, ILI9341_BLACK);
+        tft.drawRect(BOXSIZE*2, 0, BOXSIZE*2, BOXSIZE, BACK_COL);
+        printInteg(MEAS_POSx, MEAS_POSy, humidity, BACK_COL, MEAS_SIZ);
+        printInteg(MEAS_POSx, MEAS_POSy, auxh, BACK_COL, MEAS_SIZ);
       if (oldmeasure == 3) 
-        tft.drawRect(BOXSIZE*4, 0, BOXSIZE*2, BOXSIZE, ILI9341_BLACK);  
+        tft.drawRect(BOXSIZE*4, 0, BOXSIZE*2, BOXSIZE, BACK_COL);
+
+        printText(SLID_INIT_POSx - 2, SLID_INIT_POSy + 20, "0", BACK_COL, 1);
+        printText(SLID_INIT_POSx + SLID_WIDTHx - 4, SLID_INIT_POSy + 20, "50k", BACK_COL, 1);
+
+        printText(GAS_MEAS_TEXTx, MEAS_POSy - 10, "LPGs:", BACK_COL, MEAS_SIZ);
+        printText(GAS_MEAS_TEXTx, MEAS_POSy + 10, "H2:", BACK_COL, MEAS_SIZ);
+        printText(GAS_MEAS_TEXTx, MEAS_POSy + 30, "CO:", BACK_COL, MEAS_SIZ);
+
+        printInteg(GAS_MEAS_POSx, MEAS_POSy - 10, lpg, BACK_COL, MEAS_SIZ);
+        printInteg(GAS_MEAS_POSx, MEAS_POSy + 10, dihyd, BACK_COL, MEAS_SIZ);
+        printInteg(GAS_MEAS_POSx, MEAS_POSy + 30, co, BACK_COL, MEAS_SIZ);
     }
   }
   
@@ -353,7 +440,7 @@ void loop() {
   
   switch (currmeasure) {
     case 1:
-        tft.fillRect(MEAS_POSx, MEAS_POSy, MEAS_PATCHw, MEAS_PATCHh, ILI9341_BLACK);
+        printInteg(MEAS_POSx, MEAS_POSy, auxt, BACK_COL, MEAS_SIZ);
         //Serial.println("TEMP");
         printInteg(MEAS_POSx, MEAS_POSy, temperature, TEMP_MEAS_COL, MEAS_SIZ);
 
@@ -363,9 +450,6 @@ void loop() {
         } else {
             tft.fillRect((int)((auxt-TEMP_SLID_SCALb)/TEMP_SLID_SCALa), SLID_INIT_POSy, MARK_WIDTH, SLID_HEIGHTy, RIGHT_SLID_COL);
         }
-
-        auxt = temperature;
-        auxh = humidity;
 
         // Using a specific function to render the slider when user press in proper region
         if ((p.y > (SLID_INIT_POSy - SLID_HEIGHTy * 2)) && (p.y < (SLID_INIT_POSy + SLID_HEIGHTy * 2)) && p.y > 0) {
@@ -382,7 +466,7 @@ void loop() {
         tft.fillRect((int)((temperature-TEMP_SLID_SCALb)/TEMP_SLID_SCALa), SLID_INIT_POSy, MARK_WIDTH, SLID_HEIGHTy, TEMP_MEAS_COL);
     break;
     case 2:
-        tft.fillRect(MEAS_POSx, MEAS_POSy, MEAS_PATCHw, MEAS_PATCHh, ILI9341_BLACK);
+        printInteg(MEAS_POSx, MEAS_POSy, auxh, BACK_COL, MEAS_SIZ);
         //Serial.println("HUM");
         printInteg(MEAS_POSx, MEAS_POSy, humidity, HUM_MEAS_COL, MEAS_SIZ);
 
@@ -392,9 +476,6 @@ void loop() {
         } else {
             tft.fillRect((int)((auxh-HUM_SLID_SCALb)/HUM_SLID_SCALa), SLID_INIT_POSy, MARK_WIDTH, SLID_HEIGHTy, RIGHT_SLID_COL);
         }
-
-        auxh = humidity;
-        auxt = temperature;
 
         // Using a specific function to render the slider when user press in proper region
         if ((p.y > (SLID_INIT_POSy - SLID_HEIGHTy * 2)) && (p.y < (SLID_INIT_POSy + SLID_HEIGHTy * 2)) && p.y > 0) {
@@ -410,9 +491,34 @@ void loop() {
         // Drawing a mark over slider, it will be placed in the measure specified value.
         tft.fillRect((int)((humidity-HUM_SLID_SCALb)/HUM_SLID_SCALa), SLID_INIT_POSy, MARK_WIDTH, SLID_HEIGHTy, HUM_MEAS_COL);
     break;
-    //case 3:
-    //break;  
+    case 3:
+        //Serial.println("GAS");
+        printText(SLID_INIT_POSx - 2, SLID_INIT_POSy + 20, "0", ILI9341_WHITE, 1);
+        printText(SLID_INIT_POSx + SLID_WIDTHx - 4, SLID_INIT_POSy + 20, "50k", ILI9341_WHITE, 1);
+
+        printInteg(GAS_MEAS_POSx, MEAS_POSy - 10, auxlpg, BACK_COL, MEAS_SIZ);
+        printInteg(GAS_MEAS_POSx, MEAS_POSy + 10, auxdihyd, BACK_COL, MEAS_SIZ);
+        printInteg(GAS_MEAS_POSx, MEAS_POSy + 30, auxco, BACK_COL, MEAS_SIZ);
+
+        printText(GAS_MEAS_TEXTx, MEAS_POSy - 10, "LPGs:", LPG_MEAS_COL, MEAS_SIZ);
+        printText(GAS_MEAS_TEXTx, MEAS_POSy + 10, "H2:", H2_MEAS_COL, MEAS_SIZ);
+        printText(GAS_MEAS_TEXTx, MEAS_POSy + 30, "CO:", CO_MEAS_COL, MEAS_SIZ);
+
+        printInteg(GAS_MEAS_POSx, MEAS_POSy - 10, lpg, LPG_MEAS_COL, MEAS_SIZ);
+        printInteg(GAS_MEAS_POSx, MEAS_POSy + 10, dihyd, H2_MEAS_COL, MEAS_SIZ);
+        printInteg(GAS_MEAS_POSx, MEAS_POSy + 30, co, CO_MEAS_COL, MEAS_SIZ);
+
+        printgasMarks(auxlpg, auxdihyd, auxco, lpg, dihyd, co);
+    break;
   }
+
+auxh = humidity;
+auxt = temperature;
+auxlpg = lpg;
+auxdihyd = dihyd;
+auxco = co;
+auxmq2 = mq2_value;
+auxmq2st = mq2_state;
 
 /***
  IMPORTANT: I cannot use any delay here, despite of sensor has 1Hz sampling rate, we must read the sensor permanently, because any delay
@@ -424,53 +530,75 @@ void loop() {
 } // void loop() end.
 
 // Function to check if temperature collides with chosen limit.
-unsigned long checkTemp(int t, int t_lim) {
+unsigned long checkVarArrow(int t, int t_lim, int posx, int posy, int col) {
   // Checking temperature
   if (t == t_lim) {
-      //tft.setCursor(MEAS_POSx - 15, MEAS_POSy - 15);
-      //tft.setTextColor(TEMP_MEAS_COL);
-      //tft.println("=");
+      tft.fillTriangle(posx - 12, posy, posx, posy - 5, posx, posy + 5, BACK_COL);
+      tft.fillTriangle(posx + 12, posy, posx, posy - 5, posx, posy + 5, BACK_COL);
+      tft.setCursor(posx-4, posy-5);
+      tft.setTextColor(col);tft.setTextSize(2);
+      tft.println("=");
   } else if (t != t_lim) {
       if (t < t_lim) {
-      // Things to do when temperature is lower than chosen limit
-
-      tft.fillTriangle(MEAS_POSx - 20, MEAS_POSy - 20, MEAS_POSx - 20, MEAS_POSy - 30, MEAS_POSx - 30, MEAS_POSy - 25, ILI9341_BLACK);
-      tft.fillTriangle(MEAS_POSx - 20, MEAS_POSy - 20, MEAS_POSx - 20, MEAS_POSy - 30, MEAS_POSx - 10, MEAS_POSy - 25, ILI9341_RED);
+      tft.setCursor(posx-4, posy-5);
+      tft.setTextColor(BACK_COL);tft.setTextSize(2);
+      tft.println("=");
+      tft.fillTriangle(posx - 12, posy, posx, posy - 5, posx, posy + 5, BACK_COL);
+      tft.fillTriangle(posx + 12, posy, posx, posy - 5, posx, posy + 5, col);
   } else if (t > t_lim) {
-      // Things to do when temperature is greater than chosen limit
-
-      tft.fillTriangle(MEAS_POSx - 20, MEAS_POSy - 20, MEAS_POSx - 20, MEAS_POSy - 30, MEAS_POSx - 10, MEAS_POSy - 25, ILI9341_BLACK);
-      tft.fillTriangle(MEAS_POSx - 20, MEAS_POSy - 20, MEAS_POSx - 20, MEAS_POSy - 30, MEAS_POSx - 30, MEAS_POSy - 25, ILI9341_RED);
+      tft.setCursor(posx-4, posy-5);
+      tft.setTextColor(BACK_COL);tft.setTextSize(2);
+      tft.println("=");
+      tft.fillTriangle(posx + 12, posy, posx, posy - 5, posx, posy + 5, BACK_COL);
+      tft.fillTriangle(posx - 12, posy, posx, posy - 5, posx, posy + 5, col);
   }
-      //tft.fillRect(MEAS_POSx - 20, MEAS_POSy - 20, 15, 15, ILI9341_BLACK);
   }
   return;
 }
 
 // Function to check if humidity collides with chosen limit.
-unsigned long checkHum(int h, int h_lim) {
+unsigned long checkVar(int i, int i_lim) {
   // Checking humidity
-  if (h < h_lim) {
-      // Things to do when humidity is lower than chosen limit
+  if (i == i_lim) {
+      // Things to do when variable is equal than chosen limit
 
-      tft.fillTriangle(MEAS_POSx + 20, MEAS_POSy - 20, MEAS_POSx + 20, MEAS_POSy - 30, MEAS_POSx + 10, MEAS_POSy - 25, ILI9341_BLACK);
-      tft.fillTriangle(MEAS_POSx + 20, MEAS_POSy - 20, MEAS_POSx + 20, MEAS_POSy - 30, MEAS_POSx + 30, MEAS_POSy - 25, ILI9341_BLUE);
-  } else if (h > h_lim) {
-      // Things to do when humidity is greater than chosen limit
+  } else if (i < i_lim) {
+      // Things to do when variable is lower than chosen limit
 
-      tft.fillTriangle(MEAS_POSx + 20, MEAS_POSy - 20, MEAS_POSx + 20, MEAS_POSy - 30, MEAS_POSx + 30, MEAS_POSy - 25, ILI9341_BLACK);
-      tft.fillTriangle(MEAS_POSx + 20, MEAS_POSy - 20, MEAS_POSx + 20, MEAS_POSy - 30, MEAS_POSx + 10, MEAS_POSy - 25, ILI9341_BLUE);
+  } else if (i > i_lim) {
+      // Things to do when variable is greater than chosen limit
+
   }
   return;
 }
+
+
 // Checks smoke presence
 unsigned long checkSmoke(int s) {
   if (s == false){
-    tft.fillRect(FLA_IND_POSx+1, FLA_TXT_POSy+1, FLA_IND_SIDE-2, FLA_IND_SIDE-2, FLA_IND_COL);
+    tft.fillRect(SMOK_IND_POSx+1, SMOK_TXT_POSy+1, SMOK_IND_SIDE-2, SMOK_IND_SIDE-2, SMOK_IND_COL);
   } else {
-    tft.fillRect(FLA_IND_POSx+1, FLA_TXT_POSy+1, FLA_IND_SIDE-2, FLA_IND_SIDE-2, ILI9341_BLACK);
+    tft.fillRect(SMOK_IND_POSx+1, SMOK_TXT_POSy+1, SMOK_IND_SIDE-2, SMOK_IND_SIDE-2, BACK_COL);
   }
   return;
+}
+
+// Print gas markers inside slider, which becomes into a scale from 0 to 50k ppm.
+unsigned long printgasMarks (int al, int ah, int ac, int l, int h, int c) {
+        tft.fillRect(SLID_INIT_POSx, SLID_INIT_POSy, SLID_WIDTHx, SLID_HEIGHTy, BACK_COL);
+        tft.fillRect((int)(sqrt(al-GAS_SLID_SCALb/GAS_SLID_SCALa)), SLID_INIT_POSy, MARK_WIDTH, SLID_HEIGHTy, BACK_COL);
+        tft.fillRect((int)(sqrt(ah-GAS_SLID_SCALb/GAS_SLID_SCALa)), SLID_INIT_POSy, MARK_WIDTH, SLID_HEIGHTy, BACK_COL);
+        tft.fillRect((int)(sqrt(ac-GAS_SLID_SCALb/GAS_SLID_SCALa)), SLID_INIT_POSy, MARK_WIDTH, SLID_HEIGHTy, BACK_COL);
+        tft.drawRect(SLID_INIT_POSx - 1, SLID_INIT_POSy - 1, SLID_WIDTHx + 1, SLID_HEIGHTy + 2, ILI9341_WHITE);
+
+
+        tft.fillRect((int)(sqrt(l-GAS_SLID_SCALb/GAS_SLID_SCALa)), SLID_INIT_POSy, MARK_WIDTH, SLID_HEIGHTy, LPG_MEAS_COL);
+        tft.fillRect((int)(sqrt(h-GAS_SLID_SCALb/GAS_SLID_SCALa)), SLID_INIT_POSy, MARK_WIDTH, SLID_HEIGHTy, H2_MEAS_COL);
+        tft.fillRect((int)(sqrt(c-GAS_SLID_SCALb/GAS_SLID_SCALa)), SLID_INIT_POSy, MARK_WIDTH, SLID_HEIGHTy, CO_MEAS_COL);
+
+        // This part fixes the previous limit chosen by user.
+        tft.fillRect(LIM_POSx, LIM_POSy, FIX_LIM, 15, BACK_COL);
+        return;
 }
 
 // This function renders the slider filling when user press over its region
@@ -487,11 +615,11 @@ unsigned long fillslidRender (int x) {
       tft.fillRect(SLID_INIT_POSx, SLID_INIT_POSy, x, SLID_HEIGHTy, LEFT_SLID_COL);
       tft.fillRect(x, SLID_INIT_POSy, corr_wid, SLID_HEIGHTy, RIGHT_SLID_COL);
       // Fixing the right side and white border
-      tft.fillRect(fix_posx, fix_posy, fix_wid, fix_h, ILI9341_BLACK);
+      tft.fillRect(fix_posx, fix_posy, fix_wid, fix_h, BACK_COL);
       tft.drawRect(SLID_INIT_POSx - 1, SLID_INIT_POSy - 1, SLID_WIDTHx + 1, SLID_HEIGHTy + 2, ILI9341_WHITE);
 
       // This part fixes the previous limit chosen by user.
-      tft.fillRect(LIM_POSx, LIM_POSy, FIX_LIM, MEAS_PATCHh, ILI9341_BLACK);
+      tft.fillRect(LIM_POSx, LIM_POSy, FIX_LIM, 15, BACK_COL);
       return;
 }
 
