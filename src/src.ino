@@ -9,6 +9,7 @@
 #include <Adafruit_ILI9341.h>
 #include <Adafruit_STMPE610.h>
 #include <DHT.h> // Temperature and humidity library
+#include <EEPROM.h>
 
 
 
@@ -176,8 +177,8 @@ void setup() {
   humidity = dht.readHumidity();
   Serial.println(humidity);
   Serial.println("");
-  
-  // Initial setup for display. (or optionally touchscreen uncommenting)
+
+  //Initial setup for display. (or optionally touchscreen uncommenting)
   // tft.setRotation(2); // Check before how to rotate touchscreen
   tft.fillScreen(ILI9341_BLACK);
 
@@ -186,20 +187,26 @@ void setup() {
   printText(GAS_BUTT_POSx, GAS_BUTT_POSy, "Hum [%]", GAS_BUTT_COL, GAS_BUTT_SIZ);
   printText(HUM_BUTT_POSx, HUM_BUTT_POSy, "Gas [ppm]", HUM_BUTT_COL, HUM_BUTT_SIZ);
 
-  // Select the current measure 'Temp'; modify currmeasure value to setup a default measure to show
-  // in this case it draws a white rectancle around the button
-  currmeasure = 1;
+  /***
+  Select the current measure 'Temp'; modify currmeasure value to setup a default measure to show
+  in this case it draws a white rectancle around the button
+  ***/
+  currmeasure = EEPROM.read(0);
   if (currmeasure == 1) {
     tft.drawRect(0, 0, BOXSIZE*2, BOXSIZE, ILI9341_WHITE);
     Serial.println("Default measure: TEMP");
     printInteg(MEAS_POSx, MEAS_POSy, temperature, TEMP_MEAS_COL, MEAS_SIZ);
-    temp_lim = 0;
+    temp_lim = EEPROM.read(1);
+    temp_lim_aux = EEPROM.read(2);
+    fillslidRender(temp_lim_aux);
     printInteg(LIM_POSx, LIM_POSy, temp_lim, ILI9341_WHITE, LIM_SIZ);
   } else if (currmeasure == 2) {
       tft.drawRect(BOXSIZE*2,0,BOXSIZE*2, BOXSIZE, ILI9341_WHITE);
       Serial.println("Default measure: HUM");
       printInteg(MEAS_POSx, MEAS_POSy, humidity, HUM_MEAS_COL, MEAS_SIZ);
-      hum_lim = 0;
+      hum_lim = EEPROM.read(3);
+      hum_lim_aux = EEPROM.read(4);
+      fillslidRender(hum_lim_aux);
       printInteg(LIM_POSx, LIM_POSy, hum_lim, ILI9341_WHITE, LIM_SIZ);
   } else if (currmeasure == 3) {
       tft.drawRect(BOXSIZE*4, 0, BOXSIZE*2, BOXSIZE, ILI9341_WHITE);
@@ -243,65 +250,89 @@ void loop() {
   }
 
   // See if there's any  touch data for us
-  if (ts.bufferEmpty() == true && temperature == auxt && humidity == auxh && ) {
+  if (ts.bufferEmpty() == true && temperature == auxt && humidity == auxh) {
     return;
   }
 
-  // Wait for a touch
-  //if (ts.touched() == false && temperature == auxt && humidity == auxh) {
-  //   return;
-  //}
-  
-  //while(ts.touched()) {
-  //  TS_Point p = ts.getPoint();    
-  //}
+  /***
+  Different ways to interact with touchpad and control code execution.
+  Those ways introduces delay in this design.
+  ***/
+  /***
+  /***
+  //Wait for a touch
+  if (ts.touched() == false && temperature == auxt && humidity == auxh) {
+     return;
+  }
+  ***/
+  /***
+  // Process data always, but with same value of p if no one touch the ts
+  while(ts.touched()) {
+    TS_Point p = ts.getPoint();
+  }
+  ***/
 
+  
   // Retrieve a point
   TS_Point p = ts.getPoint();
   // Scale from ~0->4000 to tft.width using the calibration #'s
   p.x = map(p.x, TS_MINX, TS_MAXX, 0, tft.width());
   p.y = map(p.y, TS_MINY, TS_MAXY, 0, tft.height());
-  // Debuggin point data or changing measire
-  //Serial.println("Any measure changes or someone touched the ts");
-  //Serial.print("(p.x, p.y)   =>   ");
-  //Serial.print("("); Serial.print(p.x);
-  //Serial.print(", "); Serial.print(p.y);
-  //Serial.println(")");
+  /***
+  //Debuggin point data or changing measire
+  Serial.println("Any measure changes or someone touched the ts");
+  Serial.print("(p.x, p.y)   =>   ");
+  Serial.print("("); Serial.print(p.x);
+  Serial.print(", "); Serial.print(p.y);
+  Serial.println(")");
+  ***/
 
-  // If any variable changed the first thing to do (after retrieve the point if user pressed) is check if this new value
-  // is greater or lower than limit chosen by user.
+  /***
+  If any variable changed the first thing to do (after retrieve the point if user pressed) is check if this new value
+  is greater or lower than limit chosen by user.
+  ***/
   //Serial.println("Checking variables and limits:");
   //Serial.println("Temperature");
   checkTemp(temperature, temp_lim);
   //Serial.println("Humidity");
   checkHum(humidity, hum_lim);
-  checkGas(mq2_state);
+  checkSmoke(mq2_state);
+
+  /***
+  Choosing a measure. Once we receive the ts data, this condicional checks if the user pressed inside any button region,
+  then, draws a white rectangle and displays the measure coming from any kind of sensor
+  ***/
   
-  // Choosing a measure. Once we receive the ts data, this condicional checks if the user pressed inside any button region,
-  // then, draws a white rectangle and displays the measure coming from any kind of sensor
   if (p.y < BOXSIZE && p.y > 0) {
     oldmeasure = currmeasure;
     if (p.x < BOXSIZE*2) {
       currmeasure = 1;
+      EEPROM.write(0, currmeasure);
       tft.fillRect(MEAS_POSx, MEAS_POSy, MEAS_PATCHw, MEAS_PATCHh, ILI9341_BLACK);
       tft.drawRect(0, 0, BOXSIZE*2, BOXSIZE, ILI9341_WHITE);
       //Serial.println("TEMP");
       printInteg(MEAS_POSx, MEAS_POSy, temperature, TEMP_MEAS_COL, MEAS_SIZ);
+      temp_lim_aux = EEPROM.read(2);
       fillslidRender(temp_lim_aux);
       tft.fillRect((int)((temperature-TEMP_SLID_SCALb)/TEMP_SLID_SCALa), SLID_INIT_POSy, MARK_WIDTH, SLID_HEIGHTy, TEMP_MEAS_COL);
+      temp_lim = EEPROM.read(1);
       printInteg(LIM_POSx, LIM_POSy, temp_lim, ILI9341_WHITE, LIM_SIZ);
     } else if(p.x > BOXSIZE*2 && p.x < BOXSIZE*4) {
         currmeasure = 2;
+        EEPROM.write(0,currmeasure);
         tft.fillRect(MEAS_POSx, MEAS_POSy, MEAS_PATCHw, MEAS_PATCHh, ILI9341_BLACK);
         tft.drawRect(BOXSIZE*2, 0, BOXSIZE*2, BOXSIZE, ILI9341_WHITE);
         //Serial.println("HUM");
         printInteg(MEAS_POSx, MEAS_POSy, humidity, HUM_MEAS_COL, MEAS_SIZ);
+        hum_lim_aux = EEPROM.read(4);
         fillslidRender(hum_lim_aux);
         tft.fillRect((int)((humidity-HUM_SLID_SCALb)/HUM_SLID_SCALa), SLID_INIT_POSy, MARK_WIDTH, SLID_HEIGHTy, HUM_MEAS_COL);
         tft.fillRect(LIM_POSx, LIM_POSy, FIX_LIM, MEAS_PATCHh, ILI9341_BLACK);
+        hum_lim = EEPROM.read(3);
         printInteg(LIM_POSx, LIM_POSy, hum_lim, ILI9341_WHITE, LIM_SIZ);
     } else if (p.x > BOXSIZE*4) {
         currmeasure = 3;
+        EEPROM.write(0,currmeasure);
         //printInteg(MEAS_POSx, MEAS_POSy, oldmeasure, ILI9341_BLACK, MEAS_SIZ);
         tft.drawRect(BOXSIZE*4, 0, BOXSIZE*2, BOXSIZE, ILI9341_WHITE);
         //Serial.println("GAS");
@@ -341,7 +372,9 @@ void loop() {
             if ((p.x > SLID_INIT_POSx) && (p.x < (SLID_INIT_POSx + SLID_WIDTHx))) {
                 fillslidRender(p.x);
                 temp_lim = (int)(TEMP_SLID_SCALa*p.x + TEMP_SLID_SCALb);
+                EEPROM.write(1, temp_lim);      // Writing chosen limit for temperature at addres 0
                 temp_lim_aux = p.x;
+                EEPROM.write(2, temp_lim_aux);  // Writing its corresponding p.x at addres 1
                 printInteg(LIM_POSx, LIM_POSy, temp_lim, ILI9341_WHITE, LIM_SIZ);
             }
         }
@@ -368,7 +401,9 @@ void loop() {
             if ((p.x > SLID_INIT_POSx) && (p.x < (SLID_INIT_POSx + SLID_WIDTHx))) {
                 fillslidRender(p.x);
                 hum_lim = (int)(HUM_SLID_SCALa*p.x + HUM_SLID_SCALb);
+                EEPROM.write(3, hum_lim);       // Writing chosen limit for humidity at addres 2
                 hum_lim_aux = p.x;
+                EEPROM.write(4, hum_lim_aux);   // Addres 3 to save its corresponding p.x and redraw the slider
                 printInteg(LIM_POSx, LIM_POSy, hum_lim, ILI9341_WHITE, LIM_SIZ);
             }
         }
@@ -378,16 +413,25 @@ void loop() {
     //case 3:
     //break;  
   }
-// IMPORTANT: I cannot use any delay here, despite of sensor has 1Hz sampling rate, we must read the sensor permanently, because any delay
-// will collide with touchscreen device, the user cannot percibe any kind of delay when he touch the touchscreen. So if the maximun refresh
-// rate for the sensor is 1Hz, that would be the maximun auto-refresh frequency for the display. The loop() function returns to start if
-// there is no changes in measures or no one touches the screen.
+
+/***
+ IMPORTANT: I cannot use any delay here, despite of sensor has 1Hz sampling rate, we must read the sensor permanently, because any delay
+ will collide with touchscreen device, the user cannot percibe any kind of delay when he touch the touchscreen. So if the maximun refresh
+ rate for the sensor is 1Hz, that would be the maximun auto-refresh frequency for the display. The loop() function returns to start if
+ there is no changes in measures or no one touches the screen.
+***/
+
 } // void loop() end.
 
-
+// Function to check if temperature collides with chosen limit.
 unsigned long checkTemp(int t, int t_lim) {
   // Checking temperature
-  if (t < t_lim) {
+  if (t == t_lim) {
+      //tft.setCursor(MEAS_POSx - 15, MEAS_POSy - 15);
+      //tft.setTextColor(TEMP_MEAS_COL);
+      //tft.println("=");
+  } else if (t != t_lim) {
+      if (t < t_lim) {
       // Things to do when temperature is lower than chosen limit
 
       tft.fillTriangle(MEAS_POSx - 20, MEAS_POSy - 20, MEAS_POSx - 20, MEAS_POSy - 30, MEAS_POSx - 30, MEAS_POSy - 25, ILI9341_BLACK);
@@ -398,8 +442,12 @@ unsigned long checkTemp(int t, int t_lim) {
       tft.fillTriangle(MEAS_POSx - 20, MEAS_POSy - 20, MEAS_POSx - 20, MEAS_POSy - 30, MEAS_POSx - 10, MEAS_POSy - 25, ILI9341_BLACK);
       tft.fillTriangle(MEAS_POSx - 20, MEAS_POSy - 20, MEAS_POSx - 20, MEAS_POSy - 30, MEAS_POSx - 30, MEAS_POSy - 25, ILI9341_RED);
   }
+      //tft.fillRect(MEAS_POSx - 20, MEAS_POSy - 20, 15, 15, ILI9341_BLACK);
+  }
   return;
 }
+
+// Function to check if humidity collides with chosen limit.
 unsigned long checkHum(int h, int h_lim) {
   // Checking humidity
   if (h < h_lim) {
@@ -415,9 +463,9 @@ unsigned long checkHum(int h, int h_lim) {
   }
   return;
 }
-
-unsigned long checkGas(int g) {
-  if (g == false){
+// Checks smoke presence
+unsigned long checkSmoke(int s) {
+  if (s == false){
     tft.fillRect(FLA_IND_POSx+1, FLA_TXT_POSy+1, FLA_IND_SIDE-2, FLA_IND_SIDE-2, FLA_IND_COL);
   } else {
     tft.fillRect(FLA_IND_POSx+1, FLA_TXT_POSy+1, FLA_IND_SIDE-2, FLA_IND_SIDE-2, ILI9341_BLACK);
@@ -427,10 +475,12 @@ unsigned long checkGas(int g) {
 
 // This function renders the slider filling when user press over its region
 unsigned long fillslidRender (int x) {
-      // I don't know why I must fix the slider at right side. Theoretically this function is used inside a conditional which checks if the
-      // user pressed between two specific p.x values. So ... if the user is pressing outside, should not be drawn anything, 
-      // but for some reason I need to fix, cause slider keeps drawing itself if the user drag the finger to the right. 
-      // The following variable is intended to do this
+      /***
+      I don't know why I must fix the slider at right side. Theoretically this function is used inside a conditional which checks if the
+      user pressed between two specific p.x values. So ... if the user is pressing outside, should not be drawn anything,
+      but for some reason I need to fix, cause slider keeps drawing itself if the user drag the finger to the right.
+      The following variable is intended to do this
+      ***/
       int corr_wid = SLID_INIT_POSx + SLID_WIDTHx - x - 1;
 
       // Filling right and left parts of slider 
@@ -445,8 +495,10 @@ unsigned long fillslidRender (int x) {
       return;
 }
 
-// Function to display a given string of characteres. Maybe is not much efficient, cause a string requires much more 
-// allocated memmory than a integer.
+/***
+Function to display a given string of characteres. Maybe is not much efficient, cause a string requires much more
+allocated memmory than a integer.
+***/
 unsigned long printText(int x, int y, String strg, int col, int sz) {
   //tft.setRotation(1);         // The drawn value can be rotaded
   tft.setCursor(x, y);
@@ -455,8 +507,10 @@ unsigned long printText(int x, int y, String strg, int col, int sz) {
   return;
 }
 
-// This function is very similar to previous one, but in this case we are printing an integer, lighter than a string. Apparently 
-// the performing is not being affected
+/***
+This function is very similar to previous one, but in this case we are printing an integer, lighter than a string. Apparently
+the performing is not being affected
+***/
 unsigned long printInteg(int x, int y, int val, int col, int sz) {
   //tft.setRotation(1);         // The drawn value can be rotaded
   tft.setCursor(x, y);
