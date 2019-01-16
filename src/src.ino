@@ -423,11 +423,9 @@ void loop() {
       if (oldmeasure == 1)
         tft.drawRect(0, 0, BOXSIZE*2, BOXSIZE, BACK_COL);
         printInteg(MEAS_POSx, MEAS_POSy, temperature, BACK_COL, MEAS_SIZ);
-        printInteg(MEAS_POSx, MEAS_POSy, auxt, BACK_COL, MEAS_SIZ);
       if (oldmeasure == 2)
         tft.drawRect(BOXSIZE*2, 0, BOXSIZE*2, BOXSIZE, BACK_COL);
         printInteg(MEAS_POSx, MEAS_POSy, humidity, BACK_COL, MEAS_SIZ);
-        printInteg(MEAS_POSx, MEAS_POSy, auxh, BACK_COL, MEAS_SIZ);
       if (oldmeasure == 3) 
         tft.drawRect(BOXSIZE*4, 0, BOXSIZE*2, BOXSIZE, BACK_COL);
 
