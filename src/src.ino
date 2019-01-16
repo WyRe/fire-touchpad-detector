@@ -147,7 +147,7 @@ Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
 #define LIM_POSy SLID_INIT_POSy - 20
 #define LIM_SIZ 2
 #define FIX_LIM 40
-int temp_lim,temp_lim_aux,hum_lim,hum_lim_aux;
+int temp_lim,temp_lim_px,hum_lim,hum_lim_px;
 
 
 // Measure mark width in slider
@@ -255,22 +255,23 @@ void setup() {
   Select the current measure 'Temp'; modify currmeasure value to setup a default measure to show
   in this case it draws a white rectancle around the button
   ***/
+  temp_lim_px = EEPROM.read(2);
+  temp_lim = EEPROM.read(1);
+  hum_lim_px = EEPROM.read(4);
+  hum_lim = EEPROM.read(3);
   currmeasure = EEPROM.read(0);
+ 
   if (currmeasure == 1) {
     tft.drawRect(0, 0, BOXSIZE*2, BOXSIZE, ILI9341_WHITE);
     Serial.println("Default measure: TEMP");
     printInteg(MEAS_POSx, MEAS_POSy, temperature, TEMP_MEAS_COL, MEAS_SIZ);
-    temp_lim = EEPROM.read(1);
-    temp_lim_aux = EEPROM.read(2);
-    fillslidRender(temp_lim_aux);
+    fillslidRender(temp_lim_px);
     printInteg(LIM_POSx, LIM_POSy, temp_lim, ILI9341_WHITE, LIM_SIZ);
   } else if (currmeasure == 2) {
       tft.drawRect(BOXSIZE*2,0,BOXSIZE*2, BOXSIZE, ILI9341_WHITE);
       Serial.println("Default measure: HUM");
       printInteg(MEAS_POSx, MEAS_POSy, humidity, HUM_MEAS_COL, MEAS_SIZ);
-      hum_lim = EEPROM.read(3);
-      hum_lim_aux = EEPROM.read(4);
-      fillslidRender(hum_lim_aux);
+      fillslidRender(hum_lim_px);
       printInteg(LIM_POSx, LIM_POSy, hum_lim, ILI9341_WHITE, LIM_SIZ);
   } else if (currmeasure == 3) {
       tft.drawRect(BOXSIZE*4, 0, BOXSIZE*2, BOXSIZE, ILI9341_WHITE);
@@ -368,6 +369,10 @@ void loop() {
   Choosing a measure. Once we receive the ts data, this condicional checks if the user pressed inside any button region,
   then, draws a white rectangle and displays the measure coming from any kind of sensor
   ***/
+  temp_lim_px = EEPROM.read(2);
+  temp_lim = EEPROM.read(1);
+  hum_lim_px = EEPROM.read(4);
+  hum_lim = EEPROM.read(3);
   
   if (p.y < BOXSIZE && p.y > 0) {
     oldmeasure = currmeasure;
@@ -378,10 +383,8 @@ void loop() {
       tft.drawRect(0, 0, BOXSIZE*2, BOXSIZE, ILI9341_WHITE);
       //Serial.println("TEMP");
       printInteg(MEAS_POSx, MEAS_POSy, temperature, TEMP_MEAS_COL, MEAS_SIZ);
-      temp_lim_aux = EEPROM.read(2);
-      fillslidRender(temp_lim_aux);
+      fillslidRender(temp_lim_px);
       tft.fillRect((int)((temperature-TEMP_SLID_SCALb)/TEMP_SLID_SCALa), SLID_INIT_POSy, MARK_WIDTH, SLID_HEIGHTy, TEMP_MEAS_COL);
-      temp_lim = EEPROM.read(1);
       printInteg(LIM_POSx, LIM_POSy, temp_lim, ILI9341_WHITE, LIM_SIZ);
     } else if(p.x > BOXSIZE*2 && p.x < BOXSIZE*4) {
         currmeasure = 2;
@@ -390,10 +393,8 @@ void loop() {
         tft.drawRect(BOXSIZE*2, 0, BOXSIZE*2, BOXSIZE, ILI9341_WHITE);
         //Serial.println("HUM");
         printInteg(MEAS_POSx, MEAS_POSy, humidity, HUM_MEAS_COL, MEAS_SIZ);
-        hum_lim_aux = EEPROM.read(4);
-        fillslidRender(hum_lim_aux);
+        fillslidRender(hum_lim_px);
         tft.fillRect((int)((humidity-HUM_SLID_SCALb)/HUM_SLID_SCALa), SLID_INIT_POSy, MARK_WIDTH, SLID_HEIGHTy, HUM_MEAS_COL);
-        hum_lim = EEPROM.read(3);
         printInteg(LIM_POSx, LIM_POSy, hum_lim, ILI9341_WHITE, LIM_SIZ);
     } else if (p.x > BOXSIZE*4) {
         currmeasure = 3;
@@ -463,8 +464,8 @@ void loop() {
                 fillslidRender(p.x);
                 temp_lim = (int)(TEMP_SLID_SCALa*p.x + TEMP_SLID_SCALb);
                 EEPROM.write(1, temp_lim);      // Writing chosen limit for temperature at addres 0
-                temp_lim_aux = p.x;
-                EEPROM.write(2, temp_lim_aux);  // Writing its corresponding p.x at addres 1
+                temp_lim_px = p.x;
+                EEPROM.write(2, temp_lim_px);  // Writing its corresponding p.x at addres 1
                 printInteg(LIM_POSx, LIM_POSy, temp_lim, ILI9341_WHITE, LIM_SIZ);
             }
         }
@@ -489,8 +490,8 @@ void loop() {
                 fillslidRender(p.x);
                 hum_lim = (int)(HUM_SLID_SCALa*p.x + HUM_SLID_SCALb);
                 EEPROM.write(3, hum_lim);       // Writing chosen limit for humidity at addres 2
-                hum_lim_aux = p.x;
-                EEPROM.write(4, hum_lim_aux);   // Addres 3 to save its corresponding p.x and redraw the slider
+                hum_lim_px = p.x;
+                EEPROM.write(4, hum_lim_px);   // Addres 3 to save its corresponding p.x and redraw the slider
                 printInteg(LIM_POSx, LIM_POSy, hum_lim, ILI9341_WHITE, LIM_SIZ);
             }
         }
