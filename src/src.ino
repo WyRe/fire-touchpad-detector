@@ -16,6 +16,9 @@
 
 // Constants related with physical wiring and pins. 
 
+// LED (actuators)
+#define LED_PIN 44
+
 // Setting up MQ2 gas sensor
 #define PIN_MQ2 33
 
@@ -209,6 +212,9 @@ void setup() {
   dht.begin();
   Serial.println("DHT started");
 
+  // LED pin setup (Actuators)
+  pinMode(LED_PIN, OUTPUT);
+
   // Initial MQ2 sensor reading
   pinMode(PIN_MQ2, INPUT); // Set sensor - pin 33 as an input
   mq2_value = analogRead(A8);
@@ -353,6 +359,8 @@ void loop() {
   checkVarArrow(temperature, temp_lim, TEMP_ARR_POSx, TEMP_ARR_POSy, TEMP_MEAS_COL);
   //Serial.println("Humidity");
   checkVarArrow(humidity, hum_lim, HUM_ARR_POSx, HUM_ARR_POSy, HUM_MEAS_COL);
+  checkTemp(temperature, temp_lim);
+  
 
   checkSmoke(mq2_state);
 
@@ -556,9 +564,26 @@ unsigned long checkVarArrow(int t, int t_lim, int posx, int posy, int col) {
   return;
 }
 
-// Function to check if humidity collides with chosen limit.
+
+// Function to check if temperature collides with chosen limit.
+unsigned long checkTemp(int i, int i_lim) {
+  int k;
+  // Checking variable value 
+  if (i == i_lim) {
+      // Things to do when variable is equal than chosen limit
+      digitalWrite(LED_PIN, LOW);
+  } else {
+      // Things to do when variable is different than chosen limit
+      k = int(abs(i - i_lim)*255/50);
+      analogWrite(LED_PIN, k);
+  }
+  return;
+}
+
+/***
+// Function to check if any variable collides with chosen limit.
 unsigned long checkVar(int i, int i_lim) {
-  // Checking humidity
+  // Checking variable value
   if (i == i_lim) {
       // Things to do when variable is equal than chosen limit
 
@@ -571,7 +596,7 @@ unsigned long checkVar(int i, int i_lim) {
   }
   return;
 }
-
+***/
 
 // Checks smoke presence
 unsigned long checkSmoke(int s) {
