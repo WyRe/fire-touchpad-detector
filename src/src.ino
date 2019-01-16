@@ -191,10 +191,8 @@ Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
 // Slider-related
 int temp_lim;
 int temp_lim_px;
-int oldtmp_lim_px = 0;
 int hum_lim;
 int hum_lim_px;
-int oldhum_lim_px = 0;
 
 // Flame sensor relative var
 bool fla_state;
@@ -257,6 +255,13 @@ void setup() {
   fla_state = digitalRead(PIN_FLA);
   fla_volt = abs(AVOLT_FLA - analogRead(APIN_FLA));
   fla_value = (float)(fla_volt*100/AVOLT_FLA);
+  Serial.println();
+  Serial.print("Initial FLAME reading    =>     ");
+  Serial.print("Digital ->  ");
+  Serial.print(fla_state);
+  Serial.print("   /  Analog  ->  ");
+  Serial.print(fla_value);
+  Serial.println();
 
   // Initial MQ2 sensor reading
   pinMode(PIN_MQ2, INPUT); // Set sensor - pin 33 as an input
@@ -265,13 +270,25 @@ void setup() {
   mq2_volt = (float)(mq2_value/1024*5.0);
   RS_gas = (5.0-mq2_volt)/mq2_volt;     // omit * RL (1000)
   ratio = RS_gas/2.70;    // ratio = RS/R0, with R0=2.70
+  Serial.println();
+  Serial.print("Initial GAS reading      =>     ");
+  Serial.print("LPGs ->  ");
   lpg = (int)(482.67 * pow(ratio, -2.542));
+  Serial.print(lpg);
+  Serial.print("   /   H2 ->  ");
   dihyd = (int)(871.81 * pow(ratio, -2.175));
+  Serial.print(dihyd);
+  Serial.print("   /   CO ->  ");
   co = abs((int)(17250 * pow(ratio, -2.668)));          // I've introduced abs() function because co concentration was giving negative value (Sensor calibration?)
+  Serial.println(co);
+  Serial.print("Initial GAS reading      =>     ");
+  Serial.print("Smoke ->  ");
+  Serial.print(mq2_state);
+  Serial.println();
 
   // Initial DHT sensor reading
-  Serial.println("");
-  Serial.print("Initial reading      =>     ");
+  Serial.println();
+  Serial.print("Initial T/H reading      =>     ");
   Serial.print("Temp -> ");
   temperature = dht.readTemperature();
   auxt = temperature;
@@ -280,7 +297,7 @@ void setup() {
   humidity = dht.readHumidity();
   auxh = humidity;
   Serial.println(humidity);
-  Serial.println("");
+  Serial.println();
 
   // Initial setup for display. (or optionally touchscreen uncommenting)
   //tft.setRotation(2); // Check before how to rotate touchscreen
@@ -351,12 +368,11 @@ void loop() {
   //Serial.print(humidity);Serial.print("/");
   //Serial.println(auxh);
 
+  fla_state = digitalRead(PIN_FLA);  
   fla_volt = abs(AVOLT_FLA - analogRead(APIN_FLA));
   fla_value = (float)(fla_volt*100/AVOLT_FLA);
 
   mq2_state = digitalRead(PIN_MQ2);
-  fla_state = digitalRead(PIN_FLA);
-
   mq2_value = analogRead(APIN_MQ2);
   mq2_volt = (float)(mq2_value/1024*5.0);
   RS_gas = (5.0-mq2_volt)/mq2_volt;     // omit * RL (1000)
@@ -437,14 +453,18 @@ void loop() {
     if (p.x < BOXSIZE*2) {
       currmeasure = 1;
       EEPROM.write(0, currmeasure);
-      printInteg(MEAS_POSx, MEAS_POSy, auxt, BACK_COL, MEAS_SIZ);
+      printInteg(TEMP_MEAS_POSx, MEAS_POSy, auxt, BACK_COL, MEAS_SIZ);
+      printInteg(TEMP_MEAS_POSx, MEAS_POSy + 20, auxflaval, BACK_COL, MEAS_SIZ);
       tft.drawRect(0, 0, BOXSIZE*2, BOXSIZE, ILI9341_WHITE);
       //Serial.println("TEMP");
       printText(TEMP_MEAS_TEXTx, MEAS_POSy, "Temp.", TEMP_MEAS_COL, MEAS_SIZ);
       printInteg(TEMP_MEAS_POSx, MEAS_POSy, temperature, TEMP_MEAS_COL, MEAS_SIZ);
       printText(TEMP_MEAS_TEXTx, MEAS_POSy + 20, "IR(%).", TEMP_MEAS_COL, MEAS_SIZ);
       printInteg(TEMP_MEAS_POSx, MEAS_POSy + 20, fla_value, TEMP_MEAS_COL, MEAS_SIZ);
-      fillslidRender(temp_lim_px);
+      // This conditional stabilizes slider when you come from another measure
+      if (oldmeasure != currmeasure) {
+        fillslidRender(temp_lim_px);
+      }
       tft.fillRect((int)((temperature-TEMP_SLID_SCALb)/TEMP_SLID_SCALa), SLID_INIT_POSy, MARK_WIDTH, SLID_HEIGHTy, TEMP_MEAS_COL);
       printInteg(LIM_POSx, LIM_POSy, temp_lim, ILI9341_WHITE, LIM_SIZ);
     } else if(p.x > BOXSIZE*2 && p.x < BOXSIZE*4) {
@@ -455,7 +475,10 @@ void loop() {
         //Serial.println("HUM");
         printText(MEAS_POSx - 40, MEAS_POSy, "Hum.", HUM_MEAS_COL, MEAS_SIZ);
         printInteg(MEAS_POSx + 30, MEAS_POSy, humidity, HUM_MEAS_COL, MEAS_SIZ);
-        fillslidRender(hum_lim_px);
+        // This conditional stabilizes slider when you come from another measure
+        if (oldmeasure != currmeasure) {
+          fillslidRender(hum_lim_px);
+        }
         tft.fillRect((int)((humidity-HUM_SLID_SCALb)/HUM_SLID_SCALa), SLID_INIT_POSy, MARK_WIDTH, SLID_HEIGHTy, HUM_MEAS_COL);
         printInteg(LIM_POSx, LIM_POSy, hum_lim, ILI9341_WHITE, LIM_SIZ);
     } else if (p.x > BOXSIZE*4) {
@@ -713,7 +736,7 @@ unsigned long fillslidRender (int x) {
       The following variable is intended to do this
       ***/
       int corr_wid = SLID_INIT_POSx + SLID_WIDTHx - x - 1;
-      Serial.println(x);
+
       // Filling right and left parts of slider 
       tft.fillRect(SLID_INIT_POSx, SLID_INIT_POSy, x - SLID_INIT_POSx, SLID_HEIGHTy, LEFT_SLID_COL);
       tft.fillRect(x, SLID_INIT_POSy, corr_wid, SLID_HEIGHTy, RIGHT_SLID_COL);
