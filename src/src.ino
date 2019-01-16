@@ -3,13 +3,13 @@
  ****************************************************/
 
 
-#include <Adafruit_GFX.h>    // Core graphics library
-#include <SPI.h>
-#include <Wire.h>      // this is needed even tho we aren't using it
-#include <Adafruit_ILI9341.h>
-#include <Adafruit_STMPE610.h>
-#include <DHT.h> // Temperature and humidity library
-#include <EEPROM.h>
+#include <SPI.h>              // SCPI header-related library
+#include <Wire.h>             // this is needed even tho we aren't using it
+#include <DHT.h>              // Temperature and humidity library
+#include <EEPROM.h>           // Built-in EEPROM in Arduino MEGA 2560 requires it
+#include <Adafruit_GFX.h>     // Core graphics library
+#include <Adafruit_ILI9341.h> // Display Adafruit library
+#include <Adafruit_STMPE610.h>// Touchscreen Adafruit library
 
 
 
@@ -19,8 +19,13 @@
 // LED (actuators)
 #define LED_PIN 44
 
+// Setting up flame sensor
+#define PIN_FLA 41
+#define APIN_FLA A9
+
 // Setting up MQ2 gas sensor
 #define PIN_MQ2 33
+#define APIN_MQ2 A8
 
 // Setting up DHT sensor
 #define DHTPIN 22
@@ -112,9 +117,9 @@ Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
 #define CO_MEAS_COL GLCD_CL_ORANGE
 
 #define TEMP_ARR_POSx 20
-#define TEMP_ARR_POSy 90
+#define TEMP_ARR_POSy 110
 #define HUM_ARR_POSx 20
-#define HUM_ARR_POSy 110
+#define HUM_ARR_POSy 130
 
 
 // Slider position and colour parameters
@@ -164,8 +169,21 @@ int temp_lim,temp_lim_px,hum_lim,hum_lim_px;
 #define SMOK_IND_BORD_COL ILI9341_WHITE
 #define SMOK_IND_COL ILI9341_YELLOW
 
+// Flame indicator
+#define FLA_TXT_POSx 10
+#define FLA_TXT_POSy 80
+#define FLA_TXT_COL ILI9341_WHITE
+#define FLA_TXT_SIZ 1
+#define FLA_IND_POSx 50
+#define FLA_IND_SIDE 10
+#define FLA_IND_BORD_COL ILI9341_WHITE
+#define FLA_IND_COL ILI9341_YELLOW
 
 // Variables:
+
+// Flame sensor relative var
+bool fla_state;
+bool auxflast;
 
 // Gas sensor relative variables
 float mq2_volt;
@@ -215,10 +233,20 @@ void setup() {
   // LED pin setup (Actuators)
   pinMode(LED_PIN, OUTPUT);
 
+  // Flame sensor
+  pinMode(PIN_FLA, INPUT);
+  fla_state = digitalRead(PIN_FLA);
+
   // Initial MQ2 sensor reading
   pinMode(PIN_MQ2, INPUT); // Set sensor - pin 33 as an input
-  mq2_value = analogRead(A8);
+  mq2_value = analogRead(APIN_MQ2);
   mq2_state = digitalRead(PIN_MQ2);
+  mq2_volt = (float)mq2_value/1024*5.0;
+  RS_gas = (5.0-mq2_volt)/mq2_volt;     // omit * RL (1000)
+  ratio = RS_gas/2.70;    // ratio = RS/R0, with R0=2.70
+  lpg = int(482.67 * pow(ratio, -2.542));
+  dihyd = int(871.81 * pow(ratio, -2.175));
+  co = abs(int(17250 * pow(ratio, -2.668)));          // I've introduced abs() function because co concentration was giving negative value (Sensor calibration?)
 
   // Initial DHT sensor reading
   Serial.println("");
@@ -230,14 +258,6 @@ void setup() {
   humidity = dht.readHumidity();
   Serial.println(humidity);
   Serial.println("");
-  mq2_value = analogRead(A8);
-  mq2_state = digitalRead(PIN_MQ2);
-  mq2_volt = (float)mq2_value/1024*5.0;
-  RS_gas = (5.0-mq2_volt)/mq2_volt;     // omit * RL (1000)
-  ratio = RS_gas/2.70;    // ratio = RS/R0, with R0=2.70
-  lpg = int(482.67 * pow(ratio, -2.542));
-  dihyd = int(871.81 * pow(ratio, -2.175));
-  co = abs(int(17250 * pow(ratio, -2.668)));          // I've introduced abs() function because co concentration was giving negative value (Sensor calibration?)
 
   // Initial setup for display. (or optionally touchscreen uncommenting)
   //tft.setRotation(2); // Check before how to rotate touchscreen
@@ -282,6 +302,9 @@ void setup() {
   // Smoke indicator
   printText(SMOK_TXT_POSx, SMOK_TXT_POSy + 2, "Smoke", SMOK_TXT_COL, SMOK_TXT_SIZ);
   tft.drawRect(SMOK_IND_POSx, SMOK_TXT_POSy, SMOK_IND_SIDE, SMOK_IND_SIDE, SMOK_IND_BORD_COL);
+  // Flame indicator
+  printText(FLA_TXT_POSx, FLA_TXT_POSy + 2, "Flame", FLA_TXT_COL, FLA_TXT_SIZ);
+  tft.drawRect(FLA_IND_POSx, FLA_TXT_POSy, FLA_IND_SIDE, FLA_IND_SIDE, FLA_IND_BORD_COL);
 }
 
 
@@ -300,9 +323,8 @@ void loop() {
   humidity = dht.readHumidity();
   //Serial.print(humidity);Serial.print("/");
   //Serial.println(auxh);
-
-  mq2_value = analogRead(A8);
-  mq2_state = digitalRead(PIN_MQ2);
+  
+  mq2_value = analogRead(APIN_MQ2);
   mq2_volt = (float)mq2_value/1024*5.0;
   RS_gas = (5.0-mq2_volt)/mq2_volt;     // omit * RL (1000)
   ratio = RS_gas/2.70;    // ratio = RS/R0, with R0=2.70
@@ -312,8 +334,12 @@ void loop() {
   lastreadingtime=millis();
   }
 
+  // Priority for mq2 and flame sensor boolean states.
+  mq2_state = digitalRead(PIN_MQ2);
+  fla_state = digitalRead(PIN_FLA);
+
   // See if there's any  touch data for us
-  if (ts.bufferEmpty() == true && temperature == auxt && humidity == auxh && mq2_value == auxmq2 && mq2_state == auxmq2st) {
+  if (ts.bufferEmpty() == true && temperature == auxt && humidity == auxh && mq2_value == auxmq2 && mq2_state == auxmq2st && fla_state == auxflast) {
       return;
   }
 
@@ -364,6 +390,7 @@ void loop() {
   
 
   checkSmoke(mq2_state);
+  checkFlame(fla_state);
 
   /***
   Choosing a measure. Once we receive the ts data, this condicional checks if the user pressed inside any button region,
@@ -521,6 +548,7 @@ void loop() {
 
 auxh = humidity;
 auxt = temperature;
+auxflast = fla_state;
 auxlpg = lpg;
 auxdihyd = dihyd;
 auxco = co;
@@ -563,22 +591,6 @@ unsigned long checkVarArrow(int t, int t_lim, int posx, int posy, int col) {
   return;
 }
 
-
-// Function to check if temperature collides with chosen limit.
-unsigned long checkTemp(int i, int i_lim) {
-  int k;
-  // Checking variable value 
-  if (i == i_lim) {
-      // Things to do when variable is equal than chosen limit
-      digitalWrite(LED_PIN, LOW);
-  } else {
-      // Things to do when variable is different than chosen limit
-      k = int(abs(i - i_lim)*255/50);
-      analogWrite(LED_PIN, k);
-  }
-  return;
-}
-
 /***
 // Function to check if any variable collides with chosen limit.
 unsigned long checkVar(int i, int i_lim) {
@@ -597,12 +609,37 @@ unsigned long checkVar(int i, int i_lim) {
 }
 ***/
 
+// Function to check if temperature collides with chosen limit.
+unsigned long checkTemp(int i, int i_lim) {
+  int k;
+  // Checking variable value 
+  if (i == i_lim) {
+      // Things to do when variable is equal than chosen limit
+      digitalWrite(LED_PIN, LOW);
+  } else {
+      // Things to do when variable is different than chosen limit
+      k = int(abs(i - i_lim)*255/50);
+      analogWrite(LED_PIN, k);
+  }
+  return;
+}
+
 // Checks smoke presence
 unsigned long checkSmoke(int s) {
   if (s == false){
     tft.fillRect(SMOK_IND_POSx+1, SMOK_TXT_POSy+1, SMOK_IND_SIDE-2, SMOK_IND_SIDE-2, SMOK_IND_COL);
   } else {
     tft.fillRect(SMOK_IND_POSx+1, SMOK_TXT_POSy+1, SMOK_IND_SIDE-2, SMOK_IND_SIDE-2, BACK_COL);
+  }
+  return;
+}
+
+// Checks smoke presence
+unsigned long checkFlame(bool f) {
+  if (f == LOW){
+    tft.fillRect(FLA_IND_POSx+1, FLA_TXT_POSy+1, FLA_IND_SIDE-2, FLA_IND_SIDE-2, FLA_IND_COL);
+  } else if(f == HIGH){
+    tft.fillRect(FLA_IND_POSx+1, FLA_TXT_POSy+1, FLA_IND_SIDE-2, FLA_IND_SIDE-2, BACK_COL);
   }
   return;
 }
