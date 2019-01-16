@@ -444,11 +444,7 @@ void loop() {
       printInteg(TEMP_MEAS_POSx, MEAS_POSy, temperature, TEMP_MEAS_COL, MEAS_SIZ);
       printText(TEMP_MEAS_TEXTx, MEAS_POSy + 20, "IR(%).", TEMP_MEAS_COL, MEAS_SIZ);
       printInteg(TEMP_MEAS_POSx, MEAS_POSy + 20, fla_value, TEMP_MEAS_COL, MEAS_SIZ);
-      // This conditional stabilizes slider when limit is not modified or when you come from another measure
-      if (oldtmp_lim_px != temp_lim_px or oldmeasure != currmeasure) {
-         oldtmp_lim_px = temp_lim_px;
-         fillslidRender(temp_lim_px);
-      }
+      fillslidRender(temp_lim_px);
       tft.fillRect((int)((temperature-TEMP_SLID_SCALb)/TEMP_SLID_SCALa), SLID_INIT_POSy, MARK_WIDTH, SLID_HEIGHTy, TEMP_MEAS_COL);
       printInteg(LIM_POSx, LIM_POSy, temp_lim, ILI9341_WHITE, LIM_SIZ);
     } else if(p.x > BOXSIZE*2 && p.x < BOXSIZE*4) {
@@ -459,11 +455,7 @@ void loop() {
         //Serial.println("HUM");
         printText(MEAS_POSx - 40, MEAS_POSy, "Hum.", HUM_MEAS_COL, MEAS_SIZ);
         printInteg(MEAS_POSx + 30, MEAS_POSy, humidity, HUM_MEAS_COL, MEAS_SIZ);
-        // This conditional stabilizes slider when limit is not modified or when you come from another measure
-        if (oldhum_lim_px != hum_lim_px or oldmeasure != currmeasure) {
-          oldhum_lim_px = hum_lim_px; 
-          fillslidRender(hum_lim_px);
-        }
+        fillslidRender(hum_lim_px);
         tft.fillRect((int)((humidity-HUM_SLID_SCALb)/HUM_SLID_SCALa), SLID_INIT_POSy, MARK_WIDTH, SLID_HEIGHTy, HUM_MEAS_COL);
         printInteg(LIM_POSx, LIM_POSy, hum_lim, ILI9341_WHITE, LIM_SIZ);
     } else if (p.x > BOXSIZE*4) {
@@ -721,9 +713,9 @@ unsigned long fillslidRender (int x) {
       The following variable is intended to do this
       ***/
       int corr_wid = SLID_INIT_POSx + SLID_WIDTHx - x - 1;
-
+      Serial.println(x);
       // Filling right and left parts of slider 
-      tft.fillRect(SLID_INIT_POSx, SLID_INIT_POSy, x, SLID_HEIGHTy, LEFT_SLID_COL);
+      tft.fillRect(SLID_INIT_POSx, SLID_INIT_POSy, x - SLID_INIT_POSx, SLID_HEIGHTy, LEFT_SLID_COL);
       tft.fillRect(x, SLID_INIT_POSy, corr_wid, SLID_HEIGHTy, RIGHT_SLID_COL);
       // Fixing the right side and white border
       tft.fillRect(fix_posx, fix_posy, fix_wid, fix_h, BACK_COL);
