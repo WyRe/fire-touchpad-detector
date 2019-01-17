@@ -18,7 +18,10 @@
 
 // ACTUATORS
 // Piranha LED
-#define PH_LED_PIN 44
+#define PIN_PH_LED 44
+
+// Conventional LED
+#define PIN_CV_LED 45
 
 // SENSORS
 // Setting up flame sensor
@@ -243,7 +246,7 @@ void setup() {
   Serial.println("DHT started");
 
   // LED pin setup (Actuators)
-  pinMode(PH_LED_PIN, OUTPUT);
+  pinMode(PIN_PH_LED, OUTPUT);
 
   // Flame sensor
   pinMode(PIN_FLA, INPUT);
@@ -431,6 +434,7 @@ void loop() {
   checkVarArrow(humidity, hum_lim, HUM_ARR_POSx, HUM_ARR_POSy, HUM_MEAS_COL);
 
   checkTemp(temperature, temp_lim);
+  checkHum(humidity, hum_lim);
 
   checkSmoke(mq2_state);
   checkFlame(fla_state);
@@ -670,20 +674,36 @@ unsigned long checkVar(int i, int i_lim) {
 }
 ***/
 
-// Function to check if temperature collides with chosen limit.
+// Function to check if temperature collides with chosen limit
 unsigned long checkTemp(int t, int t_lim) {
   int k;
   // Checking variable value 
   if (t == t_lim) {
       // Things to do when variable is equal than chosen limit
-      digitalWrite(PH_LED_PIN, LOW);
+      digitalWrite(PIN_PH_LED, LOW);
   } else {
       // Things to do when variable is different than chosen limit
-      k = int(abs(t - t_lim)*255/50);
-      analogWrite(PH_LED_PIN, k);
+      k = (int)(abs(t - t_lim)*255/50);
+      analogWrite(PIN_PH_LED, k);
   }
   return;
 }
+
+// Checks if humidity collides with chosen limit
+unsigned long checkHum(int h, int h_lim) {
+  int i;
+  int lt;
+  // Checking variable value
+  if (h == h_lim) {
+      // Things to do when variable is equal than chosen limit
+      digitalWrite(PIN_CV_LED, LOW);
+  } else {
+      i = (int)(abs(h - h_lim)*255/80);
+      analogWrite(PIN_CV_LED, i);
+  }
+  return;
+}
+
 
 // Checks smoke presence
 unsigned long checkSmoke(bool s) {
@@ -706,7 +726,6 @@ unsigned long checkFlame(bool f) {
   return;
 }
 ***/
-
 unsigned long checkFlame(bool f) {
   if (f == false){
     tft.fillCircle(FLA_IND_POSx+5, FLA_TXT_POSy+5, 3, FLA_IND_COL);
