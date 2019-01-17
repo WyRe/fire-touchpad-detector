@@ -89,7 +89,7 @@ Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
 // Size of the color selection boxes and the paintbrush size
 #define BOXSIZE 40                      // both buttons have the same height and width, using this parameter
 
-#define BACK_COL GLCD_CL_BLACK
+#define BACKG_COL GLCD_CL_BLACK
 
 // Button's Texts Positions
 #define TEMP_BUTT_POSx 25
@@ -299,7 +299,7 @@ void setup() {
 
   // Initial setup for display. (or optionally touchscreen uncommenting)
   //tft.setRotation(2); // Check before how to rotate touchscreen
-  tft.fillScreen(BACK_COL);
+  tft.fillScreen(BACKG_COL);
 
   // Displaying text of buttons measure selection boxes                             // Modify defined constants
   printText(TEMP_BUTT_POSx, TEMP_BUTT_POSy, "T [C]", TEMP_BUTT_COL, TEMP_BUTT_SIZ);
@@ -453,8 +453,8 @@ void loop() {
     if (p.x < BOXSIZE*2) {
       currmeasure = 1;
       EEPROM.write(0, currmeasure);
-      printInteg(TEMP_MEAS_POSx, MEAS_POSy, auxt, BACK_COL, MEAS_SIZ);
-      printInteg(TEMP_MEAS_POSx, MEAS_POSy + 20, auxflaval, BACK_COL, MEAS_SIZ);
+      printInteg(TEMP_MEAS_POSx, MEAS_POSy, auxt, BACKG_COL, MEAS_SIZ);
+      printInteg(TEMP_MEAS_POSx, MEAS_POSy + 20, auxflaval, BACKG_COL, MEAS_SIZ);
       tft.drawRect(0, 0, BOXSIZE*2, BOXSIZE, ILI9341_WHITE);
       //Serial.println("TEMP");
       printText(TEMP_MEAS_TEXTx, MEAS_POSy, "Temp.", TEMP_MEAS_COL, MEAS_SIZ);
@@ -470,7 +470,7 @@ void loop() {
     } else if(p.x > BOXSIZE*2 && p.x < BOXSIZE*4) {
         currmeasure = 2;
         EEPROM.write(0,currmeasure);
-        printInteg(MEAS_POSx, MEAS_POSy, auxh, BACK_COL, MEAS_SIZ);
+        printInteg(MEAS_POSx, MEAS_POSy, auxh, BACKG_COL, MEAS_SIZ);
         tft.drawRect(BOXSIZE*2, 0, BOXSIZE*2, BOXSIZE, ILI9341_WHITE);
         //Serial.println("HUM");
         printText(MEAS_POSx - 40, MEAS_POSy, "Hum.", HUM_MEAS_COL, MEAS_SIZ);
@@ -487,9 +487,9 @@ void loop() {
         tft.drawRect(BOXSIZE*4, 0, BOXSIZE*2, BOXSIZE, ILI9341_WHITE);
         //Serial.println("GAS");
 
-        printInteg(GAS_MEAS_POSx, MEAS_POSy - 10, auxlpg, BACK_COL, MEAS_SIZ);
-        printInteg(GAS_MEAS_POSx, MEAS_POSy + 10, auxdihyd, BACK_COL, MEAS_SIZ);
-        printInteg(GAS_MEAS_POSx, MEAS_POSy + 30, auxco, BACK_COL, MEAS_SIZ);
+        printInteg(GAS_MEAS_POSx, MEAS_POSy - 10, auxlpg, BACKG_COL, MEAS_SIZ);
+        printInteg(GAS_MEAS_POSx, MEAS_POSy + 10, auxdihyd, BACKG_COL, MEAS_SIZ);
+        printInteg(GAS_MEAS_POSx, MEAS_POSy + 30, auxco, BACKG_COL, MEAS_SIZ);
 
         printText(GAS_MEAS_TEXTx, MEAS_POSy - 10, "LPGs:", LPG_MEAS_COL, MEAS_SIZ);
         printText(GAS_MEAS_TEXTx, MEAS_POSy + 10, "H2:", H2_MEAS_COL, MEAS_SIZ);
@@ -507,34 +507,34 @@ void loop() {
    // This following block fixes the previous button border and shown info drawing elements with background color
    if (oldmeasure != currmeasure) {
       if (oldmeasure == 1)
-        tft.drawRect(0, 0, BOXSIZE*2, BOXSIZE, BACK_COL);
+        tft.drawRect(0, 0, BOXSIZE*2, BOXSIZE, BACKG_COL);
         
-        printText(TEMP_MEAS_TEXTx, MEAS_POSy, "Temp.", BACK_COL, MEAS_SIZ);
-        printInteg(TEMP_MEAS_POSx, MEAS_POSy, temperature, BACK_COL, MEAS_SIZ);
-        printText(TEMP_MEAS_TEXTx, MEAS_POSy + 20, "IR(%).", BACK_COL, MEAS_SIZ);
-        printInteg(TEMP_MEAS_POSx, MEAS_POSy + 20, fla_value, BACK_COL, MEAS_SIZ);
+        printText(TEMP_MEAS_TEXTx, MEAS_POSy, "Temp.", BACKG_COL, MEAS_SIZ);
+        printInteg(TEMP_MEAS_POSx, MEAS_POSy, temperature, BACKG_COL, MEAS_SIZ);
+        printText(TEMP_MEAS_TEXTx, MEAS_POSy + 20, "IR(%).", BACKG_COL, MEAS_SIZ);
+        printInteg(TEMP_MEAS_POSx, MEAS_POSy + 20, fla_value, BACKG_COL, MEAS_SIZ);
         
-        printInteg(LIM_POSx, LIM_POSy, temp_lim, BACK_COL, LIM_SIZ);
+        printInteg(LIM_POSx, LIM_POSy, temp_lim, BACKG_COL, LIM_SIZ);
       if (oldmeasure == 2)
-        tft.drawRect(BOXSIZE*2, 0, BOXSIZE*2, BOXSIZE, BACK_COL);
+        tft.drawRect(BOXSIZE*2, 0, BOXSIZE*2, BOXSIZE, BACKG_COL);
         
-        printText(MEAS_POSx - 40, MEAS_POSy, "Hum.", BACK_COL, MEAS_SIZ);
-        printInteg(MEAS_POSx + 30, MEAS_POSy, humidity, BACK_COL, MEAS_SIZ);
+        printText(MEAS_POSx - 40, MEAS_POSy, "Hum.", BACKG_COL, MEAS_SIZ);
+        printInteg(MEAS_POSx + 30, MEAS_POSy, humidity, BACKG_COL, MEAS_SIZ);
         
-        printInteg(LIM_POSx, LIM_POSy, hum_lim, BACK_COL, LIM_SIZ);
+        printInteg(LIM_POSx, LIM_POSy, hum_lim, BACKG_COL, LIM_SIZ);
       if (oldmeasure == 3) 
-        tft.drawRect(BOXSIZE*4, 0, BOXSIZE*2, BOXSIZE, BACK_COL);
+        tft.drawRect(BOXSIZE*4, 0, BOXSIZE*2, BOXSIZE, BACKG_COL);
 
-        printText(GAS_MEAS_TEXTx, MEAS_POSy - 10, "LPGs:", BACK_COL, MEAS_SIZ);
-        printText(GAS_MEAS_TEXTx, MEAS_POSy + 10, "H2:", BACK_COL, MEAS_SIZ);
-        printText(GAS_MEAS_TEXTx, MEAS_POSy + 30, "CO:", BACK_COL, MEAS_SIZ);
+        printText(GAS_MEAS_TEXTx, MEAS_POSy - 10, "LPGs:", BACKG_COL, MEAS_SIZ);
+        printText(GAS_MEAS_TEXTx, MEAS_POSy + 10, "H2:", BACKG_COL, MEAS_SIZ);
+        printText(GAS_MEAS_TEXTx, MEAS_POSy + 30, "CO:", BACKG_COL, MEAS_SIZ);
 
-        printInteg(GAS_MEAS_POSx, MEAS_POSy - 10, lpg, BACK_COL, MEAS_SIZ);
-        printInteg(GAS_MEAS_POSx, MEAS_POSy + 10, dihyd, BACK_COL, MEAS_SIZ);
-        printInteg(GAS_MEAS_POSx, MEAS_POSy + 30, co, BACK_COL, MEAS_SIZ);
+        printInteg(GAS_MEAS_POSx, MEAS_POSy - 10, lpg, BACKG_COL, MEAS_SIZ);
+        printInteg(GAS_MEAS_POSx, MEAS_POSy + 10, dihyd, BACKG_COL, MEAS_SIZ);
+        printInteg(GAS_MEAS_POSx, MEAS_POSy + 30, co, BACKG_COL, MEAS_SIZ);
         
-        printText(SLID_INIT_POSx - 2, SLID_INIT_POSy + 20, "0", BACK_COL, 1);
-        printText(SLID_INIT_POSx + SLID_WIDTHx - 4, SLID_INIT_POSy + 20, "50k", BACK_COL, 1);
+        printText(SLID_INIT_POSx - 2, SLID_INIT_POSy + 20, "0", BACKG_COL, 1);
+        printText(SLID_INIT_POSx + SLID_WIDTHx - 4, SLID_INIT_POSy + 20, "50k", BACKG_COL, 1);
     }
   }
   
@@ -542,8 +542,8 @@ void loop() {
   
   switch (currmeasure) {
     case 1:
-        printInteg(TEMP_MEAS_POSx, MEAS_POSy + 20, auxflaval, BACK_COL, MEAS_SIZ);
-        printInteg(TEMP_MEAS_POSx, MEAS_POSy, auxt, BACK_COL, MEAS_SIZ);
+        printInteg(TEMP_MEAS_POSx, MEAS_POSy + 20, auxflaval, BACKG_COL, MEAS_SIZ);
+        printInteg(TEMP_MEAS_POSx, MEAS_POSy, auxt, BACKG_COL, MEAS_SIZ);
         //Serial.println("TEMP");
         printInteg(TEMP_MEAS_POSx, MEAS_POSy, temperature, TEMP_MEAS_COL, MEAS_SIZ);
         printInteg(TEMP_MEAS_POSx, MEAS_POSy + 20, fla_value, TEMP_MEAS_COL, MEAS_SIZ);
@@ -570,7 +570,7 @@ void loop() {
         tft.fillRect((int)((temperature-TEMP_SLID_SCALb)/TEMP_SLID_SCALa), SLID_INIT_POSy, MARK_WIDTH, SLID_HEIGHTy, TEMP_MEAS_COL);
     break;
     case 2:
-        printInteg(MEAS_POSx + 30, MEAS_POSy, auxh, BACK_COL, MEAS_SIZ);
+        printInteg(MEAS_POSx + 30, MEAS_POSy, auxh, BACKG_COL, MEAS_SIZ);
         //Serial.println("HUM");
         printInteg(MEAS_POSx + 30, MEAS_POSy, humidity, HUM_MEAS_COL, MEAS_SIZ);
 
@@ -600,9 +600,9 @@ void loop() {
         printText(SLID_INIT_POSx - 2, SLID_INIT_POSy + 20, "0", ILI9341_WHITE, 1);
         printText(SLID_INIT_POSx + SLID_WIDTHx - 4, SLID_INIT_POSy + 20, "50k", ILI9341_WHITE, 1);
 
-        printInteg(GAS_MEAS_POSx, MEAS_POSy - 10, auxlpg, BACK_COL, MEAS_SIZ);
-        printInteg(GAS_MEAS_POSx, MEAS_POSy + 10, auxdihyd, BACK_COL, MEAS_SIZ);
-        printInteg(GAS_MEAS_POSx, MEAS_POSy + 30, auxco, BACK_COL, MEAS_SIZ);
+        printInteg(GAS_MEAS_POSx, MEAS_POSy - 10, auxlpg, BACKG_COL, MEAS_SIZ);
+        printInteg(GAS_MEAS_POSx, MEAS_POSy + 10, auxdihyd, BACKG_COL, MEAS_SIZ);
+        printInteg(GAS_MEAS_POSx, MEAS_POSy + 30, auxco, BACKG_COL, MEAS_SIZ);
 
         printText(GAS_MEAS_TEXTx, MEAS_POSy - 10, "LPGs:", LPG_MEAS_COL, MEAS_SIZ);
         printText(GAS_MEAS_TEXTx, MEAS_POSy + 10, "H2:", H2_MEAS_COL, MEAS_SIZ);
@@ -639,23 +639,23 @@ auxmq2st = mq2_state;
 unsigned long checkVarArrow(int t, int t_lim, int posx, int posy, int col) {
   // Checking temperature
   if (t == t_lim) {
-      tft.fillTriangle(posx - 12, posy, posx, posy - 5, posx, posy + 5, BACK_COL);
-      tft.fillTriangle(posx + 12, posy, posx, posy - 5, posx, posy + 5, BACK_COL);
+      tft.fillTriangle(posx - 12, posy, posx, posy - 5, posx, posy + 5, BACKG_COL);
+      tft.fillTriangle(posx + 12, posy, posx, posy - 5, posx, posy + 5, BACKG_COL);
       tft.setCursor(posx-4, posy-5);
       tft.setTextColor(col);tft.setTextSize(2);
       tft.println("=");
   } else if (t != t_lim) {
       if (t < t_lim) {
       tft.setCursor(posx-4, posy-5);
-      tft.setTextColor(BACK_COL);tft.setTextSize(2);
+      tft.setTextColor(BACKG_COL);tft.setTextSize(2);
       tft.println("=");
-      tft.fillTriangle(posx - 12, posy, posx, posy - 5, posx, posy + 5, BACK_COL);
+      tft.fillTriangle(posx - 12, posy, posx, posy - 5, posx, posy + 5, BACKG_COL);
       tft.fillTriangle(posx + 12, posy, posx, posy - 5, posx, posy + 5, col);
   } else if (t > t_lim) {
       tft.setCursor(posx-4, posy-5);
-      tft.setTextColor(BACK_COL);tft.setTextSize(2);
+      tft.setTextColor(BACKG_COL);tft.setTextSize(2);
       tft.println("=");
-      tft.fillTriangle(posx + 12, posy, posx, posy - 5, posx, posy + 5, BACK_COL);
+      tft.fillTriangle(posx + 12, posy, posx, posy - 5, posx, posy + 5, BACKG_COL);
       tft.fillTriangle(posx - 12, posy, posx, posy - 5, posx, posy + 5, col);
   }
   }
@@ -716,7 +716,7 @@ unsigned long checkSmoke(bool s) {
   if (s == false){
     tft.fillRect(SMOK_IND_POSx+2, SMOK_TXT_POSy+2, SMOK_IND_SIDE-4, SMOK_IND_SIDE-4, SMOK_IND_COL);
   } else if (s == true) {
-    tft.fillRect(SMOK_IND_POSx+2, SMOK_TXT_POSy+2, SMOK_IND_SIDE-4, SMOK_IND_SIDE-4, BACK_COL);
+    tft.fillRect(SMOK_IND_POSx+2, SMOK_TXT_POSy+2, SMOK_IND_SIDE-4, SMOK_IND_SIDE-4, BACKG_COL);
   }
   return;
 }
@@ -727,7 +727,7 @@ unsigned long checkFlame(bool f) {
   if (f == false){
     tft.fillRect(FLA_IND_POSx+2, FLA_TXT_POSy+2, FLA_IND_SIDE-4, FLA_IND_SIDE-4, FLA_IND_COL);
   } else if(f == true){
-    tft.fillRect(FLA_IND_POSx+2, FLA_TXT_POSy+2, FLA_IND_SIDE-4, FLA_IND_SIDE-4, BACK_COL);
+    tft.fillRect(FLA_IND_POSx+2, FLA_TXT_POSy+2, FLA_IND_SIDE-4, FLA_IND_SIDE-4, BACKG_COL);
   }
   return;
 }
@@ -737,7 +737,7 @@ unsigned long checkFlame(bool f) {
   if (f == false){
     tft.fillCircle(FLA_IND_POSx+5, FLA_TXT_POSy+5, 3, FLA_IND_COL);
   } else if(f == true){
-    tft.fillCircle(FLA_IND_POSx+5, FLA_TXT_POSy+5, 3, BACK_COL);
+    tft.fillCircle(FLA_IND_POSx+5, FLA_TXT_POSy+5, 3, BACKG_COL);
   }
   return;
 }
@@ -745,10 +745,10 @@ unsigned long checkFlame(bool f) {
 
 // Print gas markers inside slider, which becomes into a scale from 0 to 50k ppm.
 unsigned long printgasMarks (int al, int ah, int ac, int l, int h, int c) {
-        tft.fillRect(SLID_INIT_POSx, SLID_INIT_POSy, SLID_WIDTHx, SLID_HEIGHTy, BACK_COL);
-        tft.fillRect((int)(sqrt(al-GAS_SLID_SCALb/GAS_SLID_SCALa)), SLID_INIT_POSy, MARK_WIDTH, SLID_HEIGHTy, BACK_COL);
-        tft.fillRect((int)(sqrt(ah-GAS_SLID_SCALb/GAS_SLID_SCALa)), SLID_INIT_POSy, MARK_WIDTH, SLID_HEIGHTy, BACK_COL);
-        tft.fillRect((int)(sqrt(ac-GAS_SLID_SCALb/GAS_SLID_SCALa)), SLID_INIT_POSy, MARK_WIDTH, SLID_HEIGHTy, BACK_COL);
+        tft.fillRect(SLID_INIT_POSx, SLID_INIT_POSy, SLID_WIDTHx, SLID_HEIGHTy, BACKG_COL);
+        tft.fillRect((int)(sqrt(al-GAS_SLID_SCALb/GAS_SLID_SCALa)), SLID_INIT_POSy, MARK_WIDTH, SLID_HEIGHTy, BACKG_COL);
+        tft.fillRect((int)(sqrt(ah-GAS_SLID_SCALb/GAS_SLID_SCALa)), SLID_INIT_POSy, MARK_WIDTH, SLID_HEIGHTy, BACKG_COL);
+        tft.fillRect((int)(sqrt(ac-GAS_SLID_SCALb/GAS_SLID_SCALa)), SLID_INIT_POSy, MARK_WIDTH, SLID_HEIGHTy, BACKG_COL);
         tft.drawRect(SLID_INIT_POSx - 1, SLID_INIT_POSy - 1, SLID_WIDTHx + 1, SLID_HEIGHTy + 2, ILI9341_WHITE);
 
 
@@ -773,11 +773,11 @@ unsigned long fillslidRender (int x, int l) {
       tft.fillRect(SLID_INIT_POSx, SLID_INIT_POSy, x - SLID_INIT_POSx, SLID_HEIGHTy, LEFT_SLID_COL);
       tft.fillRect(x, SLID_INIT_POSy, corr_wid, SLID_HEIGHTy, RIGHT_SLID_COL);
       // Fixing the right side and white border
-      tft.fillRect(fix_posx, fix_posy, fix_wid, fix_h, BACK_COL);
+      tft.fillRect(fix_posx, fix_posy, fix_wid, fix_h, BACKG_COL);
       tft.drawRect(SLID_INIT_POSx - 1, SLID_INIT_POSy - 1, SLID_WIDTHx + 1, SLID_HEIGHTy + 2, ILI9341_WHITE);
 
       // This part fixes the previous limit chosen by user.
-      printInteg(LIM_POSx, LIM_POSy, l, BACK_COL, LIM_SIZ);
+      printInteg(LIM_POSx, LIM_POSy, l, BACKG_COL, LIM_SIZ);
       return;
 }
 
