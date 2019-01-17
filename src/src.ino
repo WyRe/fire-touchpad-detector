@@ -326,14 +326,14 @@ void setup() {
     printInteg(TEMP_MEAS_POSx, MEAS_POSy, temperature, TEMP_MEAS_COL, MEAS_SIZ);
     printText(TEMP_MEAS_TEXTx, MEAS_POSy + 20, "IR(%).", TEMP_MEAS_COL, MEAS_SIZ);
     printInteg(TEMP_MEAS_POSx, MEAS_POSy + 20, fla_value, TEMP_MEAS_COL, MEAS_SIZ);
-    fillslidRender(temp_lim_px);
+    fillslidRender(temp_lim_px, temp_lim);
     printInteg(LIM_POSx, LIM_POSy, temp_lim, ILI9341_WHITE, LIM_SIZ);
   } else if (currmeasure == 2) {
       tft.drawRect(BOXSIZE*2,0,BOXSIZE*2, BOXSIZE, ILI9341_WHITE);
       Serial.println("Default measure: HUM");
       printText(MEAS_POSx - 40, MEAS_POSy, "Hum.", HUM_MEAS_COL, MEAS_SIZ);
       printInteg(MEAS_POSx + 30, MEAS_POSy, humidity, HUM_MEAS_COL, MEAS_SIZ);
-      fillslidRender(hum_lim_px);
+      fillslidRender(hum_lim_px, hum_lim);
       printInteg(LIM_POSx, LIM_POSy, hum_lim, ILI9341_WHITE, LIM_SIZ);
   } else if (currmeasure == 3) {
       tft.drawRect(BOXSIZE*4, 0, BOXSIZE*2, BOXSIZE, ILI9341_WHITE);
@@ -461,9 +461,9 @@ void loop() {
       printInteg(TEMP_MEAS_POSx, MEAS_POSy, temperature, TEMP_MEAS_COL, MEAS_SIZ);
       printText(TEMP_MEAS_TEXTx, MEAS_POSy + 20, "IR(%).", TEMP_MEAS_COL, MEAS_SIZ);
       printInteg(TEMP_MEAS_POSx, MEAS_POSy + 20, fla_value, TEMP_MEAS_COL, MEAS_SIZ);
-      // This conditional stabilizes slider when you come from another measure
+      // This conditional pretends stabilizes slider when you come from another measure
       if (oldmeasure != currmeasure) {
-        fillslidRender(temp_lim_px);
+        fillslidRender(temp_lim_px, temp_lim);
       }
       tft.fillRect((int)((temperature-TEMP_SLID_SCALb)/TEMP_SLID_SCALa), SLID_INIT_POSy, MARK_WIDTH, SLID_HEIGHTy, TEMP_MEAS_COL);
       printInteg(LIM_POSx, LIM_POSy, temp_lim, ILI9341_WHITE, LIM_SIZ);
@@ -475,9 +475,9 @@ void loop() {
         //Serial.println("HUM");
         printText(MEAS_POSx - 40, MEAS_POSy, "Hum.", HUM_MEAS_COL, MEAS_SIZ);
         printInteg(MEAS_POSx + 30, MEAS_POSy, humidity, HUM_MEAS_COL, MEAS_SIZ);
-        // This conditional stabilizes slider when you come from another measure
+        // This conditional pretends stabilizes slider when you come from another measure
         if (oldmeasure != currmeasure) {
-          fillslidRender(hum_lim_px);
+          fillslidRender(hum_lim_px, hum_lim);
         }
         tft.fillRect((int)((humidity-HUM_SLID_SCALb)/HUM_SLID_SCALa), SLID_INIT_POSy, MARK_WIDTH, SLID_HEIGHTy, HUM_MEAS_COL);
         printInteg(LIM_POSx, LIM_POSy, hum_lim, ILI9341_WHITE, LIM_SIZ);
@@ -508,19 +508,22 @@ void loop() {
    if (oldmeasure != currmeasure) {
       if (oldmeasure == 1)
         tft.drawRect(0, 0, BOXSIZE*2, BOXSIZE, BACK_COL);
+        
         printText(TEMP_MEAS_TEXTx, MEAS_POSy, "Temp.", BACK_COL, MEAS_SIZ);
         printInteg(TEMP_MEAS_POSx, MEAS_POSy, temperature, BACK_COL, MEAS_SIZ);
         printText(TEMP_MEAS_TEXTx, MEAS_POSy + 20, "IR(%).", BACK_COL, MEAS_SIZ);
         printInteg(TEMP_MEAS_POSx, MEAS_POSy + 20, fla_value, BACK_COL, MEAS_SIZ);
+        
+        printInteg(LIM_POSx, LIM_POSy, temp_lim, BACK_COL, LIM_SIZ);
       if (oldmeasure == 2)
         tft.drawRect(BOXSIZE*2, 0, BOXSIZE*2, BOXSIZE, BACK_COL);
+        
         printText(MEAS_POSx - 40, MEAS_POSy, "Hum.", BACK_COL, MEAS_SIZ);
         printInteg(MEAS_POSx + 30, MEAS_POSy, humidity, BACK_COL, MEAS_SIZ);
+        
+        printInteg(LIM_POSx, LIM_POSy, hum_lim, BACK_COL, LIM_SIZ);
       if (oldmeasure == 3) 
         tft.drawRect(BOXSIZE*4, 0, BOXSIZE*2, BOXSIZE, BACK_COL);
-
-        printText(SLID_INIT_POSx - 2, SLID_INIT_POSy + 20, "0", BACK_COL, 1);
-        printText(SLID_INIT_POSx + SLID_WIDTHx - 4, SLID_INIT_POSy + 20, "50k", BACK_COL, 1);
 
         printText(GAS_MEAS_TEXTx, MEAS_POSy - 10, "LPGs:", BACK_COL, MEAS_SIZ);
         printText(GAS_MEAS_TEXTx, MEAS_POSy + 10, "H2:", BACK_COL, MEAS_SIZ);
@@ -529,6 +532,9 @@ void loop() {
         printInteg(GAS_MEAS_POSx, MEAS_POSy - 10, lpg, BACK_COL, MEAS_SIZ);
         printInteg(GAS_MEAS_POSx, MEAS_POSy + 10, dihyd, BACK_COL, MEAS_SIZ);
         printInteg(GAS_MEAS_POSx, MEAS_POSy + 30, co, BACK_COL, MEAS_SIZ);
+        
+        printText(SLID_INIT_POSx - 2, SLID_INIT_POSy + 20, "0", BACK_COL, 1);
+        printText(SLID_INIT_POSx + SLID_WIDTHx - 4, SLID_INIT_POSy + 20, "50k", BACK_COL, 1);
     }
   }
   
@@ -552,7 +558,7 @@ void loop() {
         // Using a specific function to render the slider when user press in proper region
         if ((p.y > (SLID_INIT_POSy - SLID_HEIGHTy * 2)) && (p.y < (SLID_INIT_POSy + SLID_HEIGHTy * 2)) && p.y > 0) {
             if ((p.x > SLID_INIT_POSx) && (p.x < (SLID_INIT_POSx + SLID_WIDTHx))) {
-                fillslidRender(p.x);
+                fillslidRender(p.x, temp_lim);
                 temp_lim = (int)(TEMP_SLID_SCALa*p.x + TEMP_SLID_SCALb);
                 EEPROM.write(1, temp_lim);      // Writing chosen limit for temperature at addres 0
                 temp_lim_px = p.x;
@@ -578,7 +584,7 @@ void loop() {
         // Using a specific function to render the slider when user press in proper region
         if ((p.y > (SLID_INIT_POSy - SLID_HEIGHTy * 2)) && (p.y < (SLID_INIT_POSy + SLID_HEIGHTy * 2)) && p.y > 0) {
             if ((p.x > SLID_INIT_POSx) && (p.x < (SLID_INIT_POSx + SLID_WIDTHx))) {
-                fillslidRender(p.x);
+                fillslidRender(p.x, hum_lim);
                 hum_lim = (int)(HUM_SLID_SCALa*p.x + HUM_SLID_SCALb);
                 EEPROM.write(3, hum_lim);       // Writing chosen limit for humidity at addres 2
                 hum_lim_px = p.x;
@@ -716,7 +722,7 @@ unsigned long checkSmoke(bool s) {
 }
 
 /***
-// Checks flame presence
+// Checks flame presence with an square indicator
 unsigned long checkFlame(bool f) {
   if (f == false){
     tft.fillRect(FLA_IND_POSx+2, FLA_TXT_POSy+2, FLA_IND_SIDE-4, FLA_IND_SIDE-4, FLA_IND_COL);
@@ -726,6 +732,7 @@ unsigned long checkFlame(bool f) {
   return;
 }
 ***/
+// Checks flame presence with a circular shape indicator
 unsigned long checkFlame(bool f) {
   if (f == false){
     tft.fillCircle(FLA_IND_POSx+5, FLA_TXT_POSy+5, 3, FLA_IND_COL);
@@ -748,14 +755,12 @@ unsigned long printgasMarks (int al, int ah, int ac, int l, int h, int c) {
         tft.fillRect((int)(sqrt(l-GAS_SLID_SCALb/GAS_SLID_SCALa)), SLID_INIT_POSy, MARK_WIDTH, SLID_HEIGHTy, LPG_MEAS_COL);
         tft.fillRect((int)(sqrt(h-GAS_SLID_SCALb/GAS_SLID_SCALa)), SLID_INIT_POSy, MARK_WIDTH, SLID_HEIGHTy, H2_MEAS_COL);
         tft.fillRect((int)(sqrt(c-GAS_SLID_SCALb/GAS_SLID_SCALa)), SLID_INIT_POSy, MARK_WIDTH, SLID_HEIGHTy, CO_MEAS_COL);
-
-        // This part fixes the previous limit chosen by user.
-        tft.fillRect(LIM_POSx, LIM_POSy, FIX_LIM, 15, BACK_COL);
+        
         return;
 }
 
 // This function renders the slider filling when user press over its region
-unsigned long fillslidRender (int x) {
+unsigned long fillslidRender (int x, int l) {
       /***
       I don't know why I must fix the slider at right side. Theoretically this function is used inside a conditional which checks if the
       user pressed between two specific p.x values. So ... if the user is pressing outside, should not be drawn anything,
@@ -772,7 +777,7 @@ unsigned long fillslidRender (int x) {
       tft.drawRect(SLID_INIT_POSx - 1, SLID_INIT_POSy - 1, SLID_WIDTHx + 1, SLID_HEIGHTy + 2, ILI9341_WHITE);
 
       // This part fixes the previous limit chosen by user.
-      tft.fillRect(LIM_POSx, LIM_POSy, FIX_LIM, 15, BACK_COL);
+      printInteg(LIM_POSx, LIM_POSy, l, BACK_COL, LIM_SIZ);
       return;
 }
 
