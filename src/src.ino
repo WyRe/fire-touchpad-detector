@@ -27,7 +27,7 @@
 // Setting up flame sensor
 #define PIN_FLA 41
 #define APIN_FLA A9
-#define AVOLT_FLA 920         // Flame sensor analog output milivolts, this value is used to scale and make a precent
+#define AVOLT_FLA 920         // Flame sensor analog output millivolts, this value is used to scale and make a precent
 
 // Setting up MQ2 gas sensor
 #define PIN_MQ2 33
@@ -205,11 +205,11 @@ int mq2_value;
 int auxmq2;
 bool mq2_state;
 bool auxmq2st;
-float RS_gas; // Get value of RS in a GAS
-float ratio; // Get ratio RS_GAS/RS_air
-float lpg; // concentration of LPGs
-float dihyd; // concentration of H2
-float co; // concentration of CO
+float RS_gas;       // Get value of RS in a GAS
+float ratio;        // Get ratio RS_GAS/RS_air
+float lpg;          // concentration of LPGs
+float dihyd;        // concentration of H2
+float co;           // concentration of CO
 float auxlpg;
 float auxdihyd;
 float auxco;
@@ -232,6 +232,7 @@ int pax;
 
 // Retains measure reading loop with no delay for loop() cycles
 long lastreadingtime=0;
+
 
 
 void setup() {
@@ -310,9 +311,9 @@ void setup() {
   tft.drawRect(SLID_INIT_POSx - 1, SLID_INIT_POSy - 1, SLID_WIDTHx + 1, SLID_HEIGHTy + 2, ILI9341_WHITE);
 
   /***
-  Select the current measure 'Temp'; modify currmeasure value to setup a default measure to show
-  in this case it draws a white rectancle around the button
-  ***/
+   * Select the current measure 'Temp'; modify currmeasure value to setup a default measure to show
+   * in this case it draws a white rectancle around the button. Intended to draw statical graph part
+   */
   temp_lim_px = EEPROM.read(2);
   temp_lim = EEPROM.read(1);
   hum_lim_px = EEPROM.read(4);
@@ -320,39 +321,70 @@ void setup() {
   currmeasure = EEPROM.read(0);
  
   if (currmeasure == 1) {
+    // Drawing chosen button border in boot process
     tft.drawRect(0, 0, BOXSIZE*2, BOXSIZE, ILI9341_WHITE);
     Serial.println("Default measure: TEMP");
+    
+    // Printing temperature value in case currmeasure stores 1 in device boot process.
     printText(TEMP_MEAS_TEXTx, MEAS_POSy, "Temp.", TEMP_MEAS_COL, MEAS_SIZ);
     printInteg(TEMP_MEAS_POSx, MEAS_POSy, temperature, TEMP_MEAS_COL, MEAS_SIZ);
     printText(TEMP_MEAS_TEXTx, MEAS_POSy + 20, "IR(%).", TEMP_MEAS_COL, MEAS_SIZ);
     printInteg(TEMP_MEAS_POSx, MEAS_POSy + 20, fla_value, TEMP_MEAS_COL, MEAS_SIZ);
+
+    // Static rendering for slider when device boots in temperature measure
     fillslidRender(temp_lim_px, temp_lim);
+
+    // Print stored in EEPROM limit integer for first time
     printInteg(LIM_POSx, LIM_POSy, temp_lim, ILI9341_WHITE, LIM_SIZ);
+    printText(SLID_INIT_POSx - 2, SLID_INIT_POSy + 20, "0", ILI9341_WHITE, 1);
+ 
+    // Printing bottom scale marks for slider in this case (plane scale in gas scale case)
+    printText(SLID_INIT_POSx + SLID_WIDTHx - 4, SLID_INIT_POSy + 20, "50k", ILI9341_WHITE, 1);
   } else if (currmeasure == 2) {
+      // Drawing chosen button border in boot process
       tft.drawRect(BOXSIZE*2,0,BOXSIZE*2, BOXSIZE, ILI9341_WHITE);
       Serial.println("Default measure: HUM");
+      
+      // Printing temperature value in case currmeasure stores 2 in device boot process.
       printText(MEAS_POSx - 40, MEAS_POSy, "Hum.", HUM_MEAS_COL, MEAS_SIZ);
       printInteg(MEAS_POSx + 30, MEAS_POSy, humidity, HUM_MEAS_COL, MEAS_SIZ);
+      
+      // Static rendering for slider when device boots in temperature measure
       fillslidRender(hum_lim_px, hum_lim);
+
+      // Print stored in EEPROM limit integer for first time
       printInteg(LIM_POSx, LIM_POSy, hum_lim, ILI9341_WHITE, LIM_SIZ);
+
+      // Printing bottom scale marks for slider in this case (plane scale in gas scale case)
+      printText(SLID_INIT_POSx - 2, SLID_INIT_POSy + 20, "10", ILI9341_WHITE, 1);
+      printText(SLID_INIT_POSx + SLID_WIDTHx - 4, SLID_INIT_POSy + 20, "70", ILI9341_WHITE, 1);
   } else if (currmeasure == 3) {
+      // Drawing chosen button border in boot process
       tft.drawRect(BOXSIZE*4, 0, BOXSIZE*2, BOXSIZE, ILI9341_WHITE);
       Serial.println("Default measure: GAS");
-      // There is no need for initial gas measures config, because this measures have not dynamic limiter.  
+
+      // Printing bottom scale marks for plane scale in this case (slider in temp or humidity case)
+      printText(SLID_INIT_POSx - 2, SLID_INIT_POSy + 20, "0", ILI9341_WHITE, 1);
+      printText(SLID_INIT_POSx + SLID_WIDTHx - 4, SLID_INIT_POSy + 20, "50k", ILI9341_WHITE, 1);
+      // There is no need for initial gas measures config, because this measures have not slider dynamic limiter.  
   }
 
   // Smoke indicator
   printText(SMOK_TXT_POSx, SMOK_TXT_POSy + 2, "Smoke", SMOK_TXT_COL, SMOK_TXT_SIZ);
   tft.drawRect(SMOK_IND_POSx, SMOK_TXT_POSy, SMOK_IND_SIDE, SMOK_IND_SIDE, SMOK_IND_BORD_COL);
-  // Flame indicator
+  
+  /***
+   * Flame indicator (If you want shape can be switched to squarde, but you must modify also the function,
+   * which checks digital output flame sensor)
+   */
   printText(FLA_TXT_POSx, FLA_TXT_POSy + 2, "Flame", FLA_TXT_COL, FLA_TXT_SIZ);
   //tft.drawRect(FLA_IND_POSx, FLA_TXT_POSy, FLA_IND_SIDE, FLA_IND_SIDE, FLA_IND_BORD_COL);
   tft.drawCircle(FLA_IND_POSx + 5, FLA_TXT_POSy + 5, 6, FLA_IND_BORD_COL);
 }
 
 
-void loop() {
 
+void loop() {
 
   // Reading sensors info and debugging.
   if(millis()-lastreadingtime>REFRESH_RATE) {
@@ -386,6 +418,7 @@ void loop() {
   //mq2_state = digitalRead(PIN_MQ2);
   //fla_state = digitalRead(PIN_FLA);
 
+  
   // See if there's any  touch data for us
   if (ts.bufferEmpty() == true && temperature == auxt && humidity == auxh && mq2_value == auxmq2 && mq2_state == auxmq2st && fla_state == auxflast && fla_value == auxflaval) {
       return;
@@ -394,21 +427,19 @@ void loop() {
   /***
   Different ways to interact with touchpad and control code execution.
   Those ways introduces delay in this design.
-  ***/
-  /***
+   */
   /***
   //Wait for a touch
   if (ts.touched() == false && temperature == auxt && humidity == auxh) {
      return;
   }
-  ***/
+   */
   /***
   // Process data always, but with same value of p if no one touch the ts
   while(ts.touched()) {
     TS_Point p = ts.getPoint();
   }
-  ***/
-
+   */
   
   // Retrieve a point
   TS_Point p = ts.getPoint();
@@ -422,13 +453,13 @@ void loop() {
   Serial.print("("); Serial.print(p.x);
   Serial.print(", "); Serial.print(p.y);
   Serial.println(")");
-  ***/
+   */
 
+  
   /***
-  If any variable changed the first thing to do (after retrieve the point if user pressed) is check if this new value
-  is greater or lower than limit chosen by user.
-  ***/
-
+   * If any variable changed the first thing to do (after retrieve the point if user pressed) is check if this new value
+   * is greater or lower than limit chosen by user.
+   */
   //Serial.println("Checking variables and limits:");
   checkVarArrow(temperature, temp_lim, TEMP_ARR_POSx, TEMP_ARR_POSy, TEMP_MEAS_COL);
   checkVarArrow(humidity, hum_lim, HUM_ARR_POSx, HUM_ARR_POSy, HUM_MEAS_COL);
@@ -439,72 +470,117 @@ void loop() {
   checkSmoke(mq2_state);
   checkFlame(fla_state);
 
-  /***
-  Choosing a measure. Once we receive the ts data, this condicional checks if the user pressed inside any button region,
-  then, draws a white rectangle and displays the measure coming from any kind of sensor
-  ***/
+
   temp_lim_px = EEPROM.read(2);
   temp_lim = EEPROM.read(1);
   hum_lim_px = EEPROM.read(4);
   hum_lim = EEPROM.read(3);
   
+  /***
+   * Choosing a measure. Once we receive the ts data, this condicional checks if the user pressed inside any button region,
+   * then, draws a white rectangle and displays the measure coming from any kind of sensor. It is intended to draw statical grap part
+   * 
+   *                                            This is drawing the statical graphic part
+   */
   if (p.y < BOXSIZE && p.y > 0) {
     oldmeasure = currmeasure;
     if (p.x < BOXSIZE*2) {
       currmeasure = 1;
+      // Storing current chosen measure in EEPROM 0 addres.
       EEPROM.write(0, currmeasure);
+
+      // Fixing previous shown value for this measure (Temp)
       printInteg(TEMP_MEAS_POSx, MEAS_POSy, auxt, BACKG_COL, MEAS_SIZ);
       printInteg(TEMP_MEAS_POSx, MEAS_POSy + 20, auxflaval, BACKG_COL, MEAS_SIZ);
+
+      // Drawing corresponding measure button border
       tft.drawRect(0, 0, BOXSIZE*2, BOXSIZE, ILI9341_WHITE);
+
+      // Printing measure current value and text-related
       //Serial.println("TEMP");
       printText(TEMP_MEAS_TEXTx, MEAS_POSy, "Temp.", TEMP_MEAS_COL, MEAS_SIZ);
       printInteg(TEMP_MEAS_POSx, MEAS_POSy, temperature, TEMP_MEAS_COL, MEAS_SIZ);
       printText(TEMP_MEAS_TEXTx, MEAS_POSy + 20, "IR(%).", TEMP_MEAS_COL, MEAS_SIZ);
       printInteg(TEMP_MEAS_POSx, MEAS_POSy + 20, fla_value, TEMP_MEAS_COL, MEAS_SIZ);
+      
       // This conditional pretends stabilizes slider when you come from another measure
       if (oldmeasure != currmeasure) {
         fillslidRender(temp_lim_px, temp_lim);
       }
+
+      // Printing the coloured mark in slider for this measure
       tft.fillRect((int)((temperature-TEMP_SLID_SCALb)/TEMP_SLID_SCALa), SLID_INIT_POSy, MARK_WIDTH, SLID_HEIGHTy, TEMP_MEAS_COL);
+      
+      // Printing currently chosen limit
       printInteg(LIM_POSx, LIM_POSy, temp_lim, ILI9341_WHITE, LIM_SIZ);
+
+      // Printing scale min and max values for this measure
+      printText(SLID_INIT_POSx - 2, SLID_INIT_POSy + 20, "0", ILI9341_WHITE, 1);
+      printText(SLID_INIT_POSx + SLID_WIDTHx - 4, SLID_INIT_POSy + 20, "50C", ILI9341_WHITE, 1);
     } else if(p.x > BOXSIZE*2 && p.x < BOXSIZE*4) {
         currmeasure = 2;
+        // Storing current chosen measure in EEPROM 0 addres.
         EEPROM.write(0,currmeasure);
+
+        // Fixing previous shown value for this measure (Humidity)
         printInteg(MEAS_POSx, MEAS_POSy, auxh, BACKG_COL, MEAS_SIZ);
+  
+        // Drawing corresponding measure button border
         tft.drawRect(BOXSIZE*2, 0, BOXSIZE*2, BOXSIZE, ILI9341_WHITE);
+        
+        // Printing measure current value and text-related
         //Serial.println("HUM");
         printText(MEAS_POSx - 40, MEAS_POSy, "Hum.", HUM_MEAS_COL, MEAS_SIZ);
         printInteg(MEAS_POSx + 30, MEAS_POSy, humidity, HUM_MEAS_COL, MEAS_SIZ);
+        
         // This conditional pretends stabilizes slider when you come from another measure
         if (oldmeasure != currmeasure) {
           fillslidRender(hum_lim_px, hum_lim);
         }
+
+        // Printing the coloured mark in slider for this measure
         tft.fillRect((int)((humidity-HUM_SLID_SCALb)/HUM_SLID_SCALa), SLID_INIT_POSy, MARK_WIDTH, SLID_HEIGHTy, HUM_MEAS_COL);
+
+        // Printing currently chosen limit for this measure
         printInteg(LIM_POSx, LIM_POSy, hum_lim, ILI9341_WHITE, LIM_SIZ);
+
+        // Printing scale min and max values for this measure
+        printText(SLID_INIT_POSx - 2, SLID_INIT_POSy + 20, "10", ILI9341_WHITE, 1);
+        printText(SLID_INIT_POSx + SLID_WIDTHx - 4, SLID_INIT_POSy + 20, "70", ILI9341_WHITE, 1);
     } else if (p.x > BOXSIZE*4) {
         currmeasure = 3;
+        // Storing current chosen measure in EEPROM 0 addres.
         EEPROM.write(0,currmeasure);
-        tft.drawRect(BOXSIZE*4, 0, BOXSIZE*2, BOXSIZE, ILI9341_WHITE);
-        //Serial.println("GAS");
 
+        // Drawing corresponding measure button border
+        tft.drawRect(BOXSIZE*4, 0, BOXSIZE*2, BOXSIZE, ILI9341_WHITE);
+
+        // Fixing previous printed values for these measures
         printInteg(GAS_MEAS_POSx, MEAS_POSy - 10, auxlpg, BACKG_COL, MEAS_SIZ);
         printInteg(GAS_MEAS_POSx, MEAS_POSy + 10, auxdihyd, BACKG_COL, MEAS_SIZ);
         printInteg(GAS_MEAS_POSx, MEAS_POSy + 30, auxco, BACKG_COL, MEAS_SIZ);
 
+        // Printing the newest values and texts
+        //Serial.println("GAS");
         printText(GAS_MEAS_TEXTx, MEAS_POSy - 10, "LPGs:", LPG_MEAS_COL, MEAS_SIZ);
-        printText(GAS_MEAS_TEXTx, MEAS_POSy + 10, "H2:", H2_MEAS_COL, MEAS_SIZ);
-        printText(GAS_MEAS_TEXTx, MEAS_POSy + 30, "CO:", CO_MEAS_COL, MEAS_SIZ);
-
         printInteg(GAS_MEAS_POSx, MEAS_POSy - 10, lpg, LPG_MEAS_COL, MEAS_SIZ);
+        printText(GAS_MEAS_TEXTx, MEAS_POSy + 10, "H2:", H2_MEAS_COL, MEAS_SIZ);
         printInteg(GAS_MEAS_POSx, MEAS_POSy + 10, dihyd, H2_MEAS_COL, MEAS_SIZ);
+        printText(GAS_MEAS_TEXTx, MEAS_POSy + 30, "CO:", CO_MEAS_COL, MEAS_SIZ);
         printInteg(GAS_MEAS_POSx, MEAS_POSy + 30, co, CO_MEAS_COL, MEAS_SIZ);
 
+        // Printing marks in the plane scale (where it was the slider) for each different gas (in different colors)
+        printgasMarks(auxlpg, auxdihyd, auxco, lpg, dihyd, co);
+
+        // Printing scale min and max values for this measures
         printText(SLID_INIT_POSx - 2, SLID_INIT_POSy + 20, "0", ILI9341_WHITE, 1);
         printText(SLID_INIT_POSx + SLID_WIDTHx - 4, SLID_INIT_POSy + 20, "50k", ILI9341_WHITE, 1);
-
-        printgasMarks(auxlpg, auxdihyd, auxco, lpg, dihyd, co);
    }
-   // This following block fixes the previous button border and shown info drawing elements with background color
+   /***
+    * This following block fixes the previous button border and shown info drawing elements with background color
+    * when user chooses a different measure to display, so it is doing the same than previous block but always using 
+    * BACKG_COL. Also is fixing statical graphic parts
+    */
    if (oldmeasure != currmeasure) {
       if (oldmeasure == 1)
         tft.drawRect(0, 0, BOXSIZE*2, BOXSIZE, BACKG_COL);
@@ -515,6 +591,9 @@ void loop() {
         printInteg(TEMP_MEAS_POSx, MEAS_POSy + 20, fla_value, BACKG_COL, MEAS_SIZ);
         
         printInteg(LIM_POSx, LIM_POSy, temp_lim, BACKG_COL, LIM_SIZ);
+
+        printText(SLID_INIT_POSx - 2, SLID_INIT_POSy + 20, "0", BACKG_COL, 1);
+        printText(SLID_INIT_POSx + SLID_WIDTHx - 4, SLID_INIT_POSy + 20, "50C", BACKG_COL, 1);
       if (oldmeasure == 2)
         tft.drawRect(BOXSIZE*2, 0, BOXSIZE*2, BOXSIZE, BACKG_COL);
         
@@ -522,6 +601,9 @@ void loop() {
         printInteg(MEAS_POSx + 30, MEAS_POSy, humidity, BACKG_COL, MEAS_SIZ);
         
         printInteg(LIM_POSx, LIM_POSy, hum_lim, BACKG_COL, LIM_SIZ);
+
+        printText(SLID_INIT_POSx - 2, SLID_INIT_POSy + 20, "10", BACKG_COL, 1);
+        printText(SLID_INIT_POSx + SLID_WIDTHx - 4, SLID_INIT_POSy + 20, "70", BACKG_COL, 1);
       if (oldmeasure == 3) 
         tft.drawRect(BOXSIZE*4, 0, BOXSIZE*2, BOXSIZE, BACKG_COL);
 
@@ -537,13 +619,23 @@ void loop() {
         printText(SLID_INIT_POSx + SLID_WIDTHx - 4, SLID_INIT_POSy + 20, "50k", BACKG_COL, 1);
     }
   }
-  
 
   
+  /***
+   * This main switch case does control the code execution flow, it does redirect to proper chosen measure by user
+   * and allows the user modify the slider which setup a limit. In the next loop() execution, measure value and this
+   * chosen limit will be compared and the microcontroller could take actions to manage these multiple situations.
+   * The microcontroller behaviour in these situations could be customized by adding orders into checkVar() functions. 
+   *                                        
+   *                                        This is drawing the dynamic graphic part.
+   */
   switch (currmeasure) {
     case 1:
+        // Fixing measure values in the case they change while user is pressing display
         printInteg(TEMP_MEAS_POSx, MEAS_POSy + 20, auxflaval, BACKG_COL, MEAS_SIZ);
         printInteg(TEMP_MEAS_POSx, MEAS_POSy, auxt, BACKG_COL, MEAS_SIZ);
+
+        // Redrawing newest values in the case theu change while user is pressing display
         //Serial.println("TEMP");
         printInteg(TEMP_MEAS_POSx, MEAS_POSy, temperature, TEMP_MEAS_COL, MEAS_SIZ);
         printInteg(TEMP_MEAS_POSx, MEAS_POSy + 20, fla_value, TEMP_MEAS_COL, MEAS_SIZ);
@@ -566,11 +658,15 @@ void loop() {
                 printInteg(LIM_POSx, LIM_POSy, temp_lim, ILI9341_WHITE, LIM_SIZ);
             }
         }
+        
         // Drawing a mark over slider, it will be placed in the measure specified value.
         tft.fillRect((int)((temperature-TEMP_SLID_SCALb)/TEMP_SLID_SCALa), SLID_INIT_POSy, MARK_WIDTH, SLID_HEIGHTy, TEMP_MEAS_COL);
     break;
     case 2:
+        // Fixing measure values in the case they change while user is pressing display
         printInteg(MEAS_POSx + 30, MEAS_POSy, auxh, BACKG_COL, MEAS_SIZ);
+
+        // Redrawing newest values in the case theu change while user is pressing display
         //Serial.println("HUM");
         printInteg(MEAS_POSx + 30, MEAS_POSy, humidity, HUM_MEAS_COL, MEAS_SIZ);
 
@@ -592,30 +688,29 @@ void loop() {
                 printInteg(LIM_POSx, LIM_POSy, hum_lim, ILI9341_WHITE, LIM_SIZ);
             }
         }
+        
         // Drawing a mark over slider, it will be placed in the measure specified value.
         tft.fillRect((int)((humidity-HUM_SLID_SCALb)/HUM_SLID_SCALa), SLID_INIT_POSy, MARK_WIDTH, SLID_HEIGHTy, HUM_MEAS_COL);
     break;
     case 3:
-        //Serial.println("GAS");
-        printText(SLID_INIT_POSx - 2, SLID_INIT_POSy + 20, "0", ILI9341_WHITE, 1);
-        printText(SLID_INIT_POSx + SLID_WIDTHx - 4, SLID_INIT_POSy + 20, "50k", ILI9341_WHITE, 1);
-
+        // Fixing measure values in the case they change while user is pressing display
         printInteg(GAS_MEAS_POSx, MEAS_POSy - 10, auxlpg, BACKG_COL, MEAS_SIZ);
         printInteg(GAS_MEAS_POSx, MEAS_POSy + 10, auxdihyd, BACKG_COL, MEAS_SIZ);
         printInteg(GAS_MEAS_POSx, MEAS_POSy + 30, auxco, BACKG_COL, MEAS_SIZ);
 
-        printText(GAS_MEAS_TEXTx, MEAS_POSy - 10, "LPGs:", LPG_MEAS_COL, MEAS_SIZ);
-        printText(GAS_MEAS_TEXTx, MEAS_POSy + 10, "H2:", H2_MEAS_COL, MEAS_SIZ);
-        printText(GAS_MEAS_TEXTx, MEAS_POSy + 30, "CO:", CO_MEAS_COL, MEAS_SIZ);
-
+        // Redrawing newest values in the case theu change while user is pressing display
+        //Serial.println("GAS");
         printInteg(GAS_MEAS_POSx, MEAS_POSy - 10, lpg, LPG_MEAS_COL, MEAS_SIZ);
         printInteg(GAS_MEAS_POSx, MEAS_POSy + 10, dihyd, H2_MEAS_COL, MEAS_SIZ);
         printInteg(GAS_MEAS_POSx, MEAS_POSy + 30, co, CO_MEAS_COL, MEAS_SIZ);
 
+        // Drawing different marks over slider, it will be placed in the measure specified value. One mark by each gas
         printgasMarks(auxlpg, auxdihyd, auxco, lpg, dihyd, co);
     break;
   }
 
+
+// Storing current values in auxiliar variables to compare with same values in the next sensor reading stage
 auxh = humidity;
 auxt = temperature;
 auxflaval = fla_value;
@@ -627,13 +722,18 @@ auxmq2 = mq2_value;
 auxmq2st = mq2_state;
 
 /***
- IMPORTANT: I cannot use any delay here, despite of sensor has 1Hz sampling rate, we must read the sensor permanently, because any delay
- will collide with touchscreen device, the user cannot percibe any kind of delay when he touch the touchscreen. So if the maximun refresh
- rate for the sensor is 1Hz, that would be the maximun auto-refresh frequency for the display. The loop() function returns to start if
- there is no changes in measures or no one touches the screen.
-***/
+ * IMPORTANT: I cannot use any delay here, despite of sensor has 1Hz sampling rate, we must read the sensor permanently, because any delay
+ * will collide with touchscreen device, the user cannot percibe any kind of delay when he touch the touchscreen. So if the maximun refresh
+ * rate for the sensor is 1Hz, that would be the maximun auto-refresh frequency for the display. The loop() function returns to start if
+ * there is no changes in measures or no one touches the screen.
+ */
+}
 
-} // void loop() end.
+
+
+/***
+ * Custom functions
+ */
 
 // Function to check if temperature collides with chosen limit.
 unsigned long checkVarArrow(int t, int t_lim, int posx, int posy, int col) {
@@ -678,7 +778,7 @@ unsigned long checkVar(int i, int i_lim) {
   }
   return;
 }
-***/
+ */
 
 // Function to check if temperature collides with chosen limit
 unsigned long checkTemp(int t, int t_lim) {
@@ -710,8 +810,7 @@ unsigned long checkHum(int h, int h_lim) {
   return;
 }
 
-
-// Checks smoke presence
+// Checks smoke presence (square indicator)
 unsigned long checkSmoke(bool s) {
   if (s == false){
     tft.fillRect(SMOK_IND_POSx+2, SMOK_TXT_POSy+2, SMOK_IND_SIDE-4, SMOK_IND_SIDE-4, SMOK_IND_COL);
@@ -720,7 +819,6 @@ unsigned long checkSmoke(bool s) {
   }
   return;
 }
-
 /***
 // Checks flame presence with an square indicator
 unsigned long checkFlame(bool f) {
@@ -731,7 +829,7 @@ unsigned long checkFlame(bool f) {
   }
   return;
 }
-***/
+ */
 // Checks flame presence with a circular shape indicator
 unsigned long checkFlame(bool f) {
   if (f == false){
@@ -741,7 +839,6 @@ unsigned long checkFlame(bool f) {
   }
   return;
 }
-
 
 // Print gas markers inside slider, which becomes into a scale from 0 to 50k ppm.
 unsigned long printgasMarks (int al, int ah, int ac, int l, int h, int c) {
@@ -762,11 +859,11 @@ unsigned long printgasMarks (int al, int ah, int ac, int l, int h, int c) {
 // This function renders the slider filling when user press over its region
 unsigned long fillslidRender (int x, int l) {
       /***
-      I don't know why I must fix the slider at right side. Theoretically this function is used inside a conditional which checks if the
-      user pressed between two specific p.x values. So ... if the user is pressing outside, should not be drawn anything,
-      but for some reason I need to fix, cause slider keeps drawing itself if the user drag the finger to the right.
-      The following variable is intended to do this
-      ***/
+       * I don't know why I must fix the slider at right side. Theoretically this function is used inside a conditional which checks if the
+       * user pressed between two specific p.x values. So ... if the user is pressing outside, should not be drawn anything,
+       * but for some reason I need to fix, cause slider keeps drawing itself if the user drag the finger to the right.
+       * The following variable is intended to do this
+       */
       int corr_wid = SLID_INIT_POSx + SLID_WIDTHx - x - 1;
 
       // Filling right and left parts of slider 
@@ -782,9 +879,9 @@ unsigned long fillslidRender (int x, int l) {
 }
 
 /***
-Function to display a given string of characteres. Maybe is not much efficient, cause a string requires much more
-allocated memmory than a integer.
-***/
+ * Function to display a given string of characteres. Maybe is not much efficient, cause a string requires much more
+ * allocated memmory than a integer.
+ */
 unsigned long printText(int x, int y, String strg, int col, int sz) {
   //tft.setRotation(1);         // The drawn value can be rotaded
   tft.setCursor(x, y);
@@ -794,9 +891,9 @@ unsigned long printText(int x, int y, String strg, int col, int sz) {
 }
 
 /***
-This function is very similar to previous one, but in this case we are printing an integer, lighter than a string. Apparently
-the performing is not being affected
-***/
+ * This function is very similar to previous one, but in this case we are printing an integer, lighter than a string. Apparently
+ * the performing is not being affected
+ */
 unsigned long printInteg(int x, int y, int val, int col, int sz) {
   //tft.setRotation(1);         // The drawn value can be rotaded
   tft.setCursor(x, y);
