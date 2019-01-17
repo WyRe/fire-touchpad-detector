@@ -262,7 +262,7 @@ void setup() {
   pinMode(PIN_MQ2, INPUT); // Set sensor - pin 33 as an input
   mq2_value = analogRead(APIN_MQ2);
   mq2_state = digitalRead(PIN_MQ2);
-  mq2_volt = (float)(mq2_value/1024*5.0);
+  mq2_volt = (float)mq2_value/1024*5.0;
   RS_gas = (5.0-mq2_volt)/mq2_volt;     // omit * RL (1000)
   ratio = RS_gas/2.70;    // ratio = RS/R0, with R0=2.70
   Serial.println();
@@ -343,7 +343,8 @@ void setup() {
   tft.drawRect(SMOK_IND_POSx, SMOK_TXT_POSy, SMOK_IND_SIDE, SMOK_IND_SIDE, SMOK_IND_BORD_COL);
   // Flame indicator
   printText(FLA_TXT_POSx, FLA_TXT_POSy + 2, "Flame", FLA_TXT_COL, FLA_TXT_SIZ);
-  tft.drawRect(FLA_IND_POSx, FLA_TXT_POSy, FLA_IND_SIDE, FLA_IND_SIDE, FLA_IND_BORD_COL);
+  //tft.drawRect(FLA_IND_POSx, FLA_TXT_POSy, FLA_IND_SIDE, FLA_IND_SIDE, FLA_IND_BORD_COL);
+  tft.drawCircle(FLA_IND_POSx + 5, FLA_TXT_POSy + 5, 6, FLA_IND_BORD_COL);
 }
 
 
@@ -369,7 +370,7 @@ void loop() {
 
   mq2_state = digitalRead(PIN_MQ2);
   mq2_value = analogRead(APIN_MQ2);
-  mq2_volt = (float)(mq2_value/1024*5.0);
+  mq2_volt = (float)mq2_value/1024*5.0;
   RS_gas = (5.0-mq2_volt)/mq2_volt;     // omit * RL (1000)
   ratio = RS_gas/2.70;    // ratio = RS/R0, with R0=2.70
   lpg = (int)(482.67 * pow(ratio, -2.542)); 
@@ -694,7 +695,8 @@ unsigned long checkSmoke(bool s) {
   return;
 }
 
-// Checks smoke presence
+/***
+// Checks flame presence
 unsigned long checkFlame(bool f) {
   if (f == false){
     tft.fillRect(FLA_IND_POSx+2, FLA_TXT_POSy+2, FLA_IND_SIDE-4, FLA_IND_SIDE-4, FLA_IND_COL);
@@ -703,6 +705,17 @@ unsigned long checkFlame(bool f) {
   }
   return;
 }
+***/
+
+unsigned long checkFlame(bool f) {
+  if (f == false){
+    tft.fillCircle(FLA_IND_POSx+5, FLA_TXT_POSy+5, 3, FLA_IND_COL);
+  } else if(f == true){
+    tft.fillCircle(FLA_IND_POSx+5, FLA_TXT_POSy+5, 3, BACK_COL);
+  }
+  return;
+}
+
 
 // Print gas markers inside slider, which becomes into a scale from 0 to 50k ppm.
 unsigned long printgasMarks (int al, int ah, int ac, int l, int h, int c) {
