@@ -50,6 +50,11 @@ Adafruit_STMPE610 ts = Adafruit_STMPE610(STMPE_CS);
 #define TFT_DC 9
 Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
 
+
+// Constants relative to graphics parts:
+
+#define REFRESH_RATE 1000               // In milliseconds
+
 // Color definitions for 64k color mode
 // Bits 0..4 -> Blue 0..4
 // Bits 5..10 -> Green 0..5
@@ -77,11 +82,6 @@ Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
 #define GLCD_CL_MAROON 0x7800
 #define GLCD_CL_PURPLE 0x780F
 #define GLCD_CL_OLIVE 0x7BE0
-
-
-// Constants relative to graphics parts:
-
-#define REFRESH_RATE 500               // In milliseconds
 
 // Size of the color selection boxes and the paintbrush size
 #define BOXSIZE 40                      // both buttons have the same height and width, using this parameter
@@ -129,7 +129,6 @@ Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
 #define HUM_ARR_POSx 20
 #define HUM_ARR_POSy 130
 
-
 // Slider position and colour parameters
 #define SLID_INIT_POSx 30
 #define SLID_INIT_POSy 270
@@ -137,7 +136,6 @@ Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
 #define SLID_HEIGHTy 15
 #define LEFT_SLID_COL ILI9341_WHITE
 #define RIGHT_SLID_COL ILI9341_BLACK
-
 
 // Slider scales
 #define TEMP_SLID_SCALa 0.280
@@ -147,13 +145,11 @@ Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
 #define GAS_SLID_SCALa 11.7
 #define GAS_SLID_SCALb -11240
 
-
 // Right fix for slider.
 #define fix_posx SLID_INIT_POSx + SLID_WIDTHx
 #define fix_posy SLID_INIT_POSy
 #define fix_wid tft.width() - SLID_INIT_POSx - SLID_WIDTHx
 #define fix_h SLID_HEIGHTy
-
 
 // Chosen limit by user position
 #define LIM_POSx SLID_INIT_POSx + 75
@@ -161,10 +157,8 @@ Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
 #define LIM_SIZ 2
 #define FIX_LIM 40
 
-
 // Measure mark width in slider
 #define MARK_WIDTH 5
-
 
 // Smoke indicator
 #define SMOK_TXT_POSx 10
@@ -185,6 +179,7 @@ Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC);
 #define FLA_IND_SIDE 10
 #define FLA_IND_BORD_COL ILI9341_WHITE
 #define FLA_IND_COL GLCD_CL_MAGENTA
+
 
 // Variables:
 
