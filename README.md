@@ -1,6 +1,6 @@
-# Fire touchpad detector
+# Fire touchpad-detector
 
-This repository contains the main code and docu about the design device based on Arduino hardware.
+This repository contains the main code and docu about designed device, based on Arduino hardware.
 
 
 ## Used modules
