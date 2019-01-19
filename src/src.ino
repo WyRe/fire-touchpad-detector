@@ -366,6 +366,14 @@ void setup() {
       // Printing bottom scale marks for plane scale in this case (slider in temp or humidity case)
       printText(SLID_INIT_POSx - 2, SLID_INIT_POSy + 20, "0", ILI9341_WHITE, 1);
       printText(SLID_INIT_POSx + SLID_WIDTHx - 4, SLID_INIT_POSy + 20, "50k", ILI9341_WHITE, 1);
+
+      // Printing initial values for measures and texts
+      printText(GAS_MEAS_TEXTx, MEAS_POSy - 10, "LPGs:", LPG_MEAS_COL, MEAS_SIZ);
+      printInteg(GAS_MEAS_POSx, MEAS_POSy - 10, lpg, LPG_MEAS_COL, MEAS_SIZ);
+      printText(GAS_MEAS_TEXTx, MEAS_POSy + 10, "H2:", H2_MEAS_COL, MEAS_SIZ);
+      printInteg(GAS_MEAS_POSx, MEAS_POSy + 10, dihyd, H2_MEAS_COL, MEAS_SIZ);
+      printText(GAS_MEAS_TEXTx, MEAS_POSy + 30, "CO:", CO_MEAS_COL, MEAS_SIZ);
+      printInteg(GAS_MEAS_POSx, MEAS_POSy + 30, co, CO_MEAS_COL, MEAS_SIZ);
       // There is no need for initial gas measures config, because this measures have not slider dynamic limiter.  
   }
 
